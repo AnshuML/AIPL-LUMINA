@@ -316,8 +316,8 @@ def debug_rag_pipeline():
         print(f"  - BM25 index: {len(rag_pipeline.chunk_texts) if rag_pipeline.bm25_index else 'None'}")
         print(f"  - Embedding model: {'Available' if rag_pipeline.embedding_model else 'None'}")
         
-        # Test search
-        test_results = rag_pipeline.search("test query", "ACCOUNTS", 1)
+        # Test search with a meaningful query
+        test_results = rag_pipeline.search("leave policy", "HR", 1)
         print(f"  - Test search results: {len(test_results)}")
         
         return True
@@ -328,6 +328,23 @@ def debug_rag_pipeline():
 def ensure_sample_data():
     """Load documents from admin panel uploads and rebuild RAG pipeline"""
     try:
+        # Check if we're in cloud environment
+        is_cloud_env = (
+            os.path.exists('/mount/src') or  # Streamlit Cloud
+            os.path.exists('/app') or        # Other cloud platforms
+            not os.path.exists('hr_chatbot.db') or 
+            os.path.getsize('hr_chatbot.db') == 0
+        )
+        
+        if is_cloud_env:
+            print("🌐 Cloud environment detected, creating sample data...")
+            from cloud_sample_data import create_cloud_sample_data
+            if create_cloud_sample_data():
+                print("✅ Sample data created for cloud deployment")
+            else:
+                print("❌ Failed to create sample data")
+                return
+        
         db = next(get_db())
         try:
             # Check if we have any documents
@@ -635,6 +652,33 @@ def main():
                             if st.session_state.department_selected == "HR":
                                 response_data = {
                                     "answer": f"I couldn't find specific information about '{prompt}' in the HR department documents. However, I can help you with general HR policies including:\n\n• **Attendance Policy**: Working hours, late arrivals, grace periods\n• **Leave Policy**: Casual leave, sick leave, earned leave, short leave\n• **Holiday Policy**: Sundays, declared holidays, compensatory leave\n• **Outdoor Duty**: OD requests and approval process\n• **Work From Home**: WFH policies and procedures\n\nPlease try rephrasing your question or ask about any of these specific topics. You can also contact HR for more detailed information.",
+                                    "confidence": "low",
+                                    "sources": [],
+                                    "chunk_ids": [],
+                                    "model_used": "gpt-4",
+                                    "response_time": 0
+                                }
+                            elif st.session_state.department_selected == "ACCOUNTS":
+                                response_data = {
+                                    "answer": f"I couldn't find specific information about '{prompt}' in the ACCOUNTS department documents. However, I can help you with general accounting policies including:\n\n• **Expense Reimbursement**: Original receipts required, monthly reports\n• **Budget Management**: Monthly reviews, variance analysis\n• **Payroll Processing**: Salary on last working day, overtime calculations\n• **Vendor Payments**: Three-way matching, 30-day terms\n• **Loan Policies**: Personal loans up to 3 months salary at 12% interest\n\nPlease try rephrasing your question or ask about any of these specific topics. You can also contact the ACCOUNTS department for more detailed information.",
+                                    "confidence": "low",
+                                    "sources": [],
+                                    "chunk_ids": [],
+                                    "model_used": "gpt-4",
+                                    "response_time": 0
+                                }
+                            elif st.session_state.department_selected == "IT":
+                                response_data = {
+                                    "answer": f"I couldn't find specific information about '{prompt}' in the IT department documents. However, I can help you with general IT policies including:\n\n• **System Access**: Unique credentials, password changes every 90 days\n• **Software Usage**: Only approved software, license compliance\n• **Data Security**: Regular backups, encryption for sensitive data\n• **Network Policies**: No personal devices, VPN for remote access\n• **Support Procedures**: 24/7 helpdesk, priority-based response\n\nPlease try rephrasing your question or ask about any of these specific topics. You can also contact the IT department for more detailed information.",
+                                    "confidence": "low",
+                                    "sources": [],
+                                    "chunk_ids": [],
+                                    "model_used": "gpt-4",
+                                    "response_time": 0
+                                }
+                            elif st.session_state.department_selected == "SALES":
+                                response_data = {
+                                    "answer": f"I couldn't find specific information about '{prompt}' in the SALES department documents. However, I can help you with general sales policies including:\n\n• **Target Setting**: Monthly targets, quarterly reviews\n• **Customer Relationship**: CRM system mandatory, data confidentiality\n• **Pricing Policies**: Standard pricing, discount approvals\n• **Order Processing**: 24-hour confirmation, credit checks\n• **Commission Structure**: 2% base commission, performance bonuses\n\nPlease try rephrasing your question or ask about any of these specific topics. You can also contact the SALES department for more detailed information.",
                                     "confidence": "low",
                                     "sources": [],
                                     "chunk_ids": [],

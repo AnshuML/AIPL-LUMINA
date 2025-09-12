@@ -17,16 +17,19 @@ from utils.llm_handler import llm_handler
 from models import get_db, Query, User, Document, DocumentChunk
 from sqlalchemy.orm import Session
 
-# Conditional logger import - only on local development
-if not os.path.exists('/mount/src'):
+# Import logger - works in both local and cloud environments
+try:
     from utils.logger import activity_logger
-else:
-    # Create a dummy logger for Streamlit Cloud
-    class DummyLogger:
-        def log_user_login(self, *args, **kwargs): pass
-        def log_query(self, *args, **kwargs): pass
-        def log_admin_action(self, *args, **kwargs): pass
-    activity_logger = DummyLogger()
+except ImportError:
+    # Fallback logger for any import issues
+    class FallbackLogger:
+        def log_user_login(self, *args, **kwargs): 
+            print(f"LOG: User login - {args}, {kwargs}")
+        def log_query(self, *args, **kwargs): 
+            print(f"LOG: Query - {args}, {kwargs}")
+        def log_admin_action(self, *args, **kwargs): 
+            print(f"LOG: Admin action - {args}, {kwargs}")
+    activity_logger = FallbackLogger()
 
 # Add this function
 def render_markdown(text):
@@ -287,6 +290,26 @@ LANGUAGES = {
     "zh": "Chinese"
 }
 
+def debug_rag_pipeline():
+    """Debug function to check RAG pipeline status"""
+    try:
+        rag_pipeline = get_rag_pipeline()
+        print(f"🔍 RAG Pipeline Debug:")
+        print(f"  - Chunk texts: {len(rag_pipeline.chunk_texts)}")
+        print(f"  - Chunk metadata: {len(rag_pipeline.chunk_metadata)}")
+        print(f"  - FAISS index: {rag_pipeline.faiss_index.ntotal if rag_pipeline.faiss_index else 'None'}")
+        print(f"  - BM25 index: {len(rag_pipeline.chunk_texts) if rag_pipeline.bm25_index else 'None'}")
+        print(f"  - Embedding model: {'Available' if rag_pipeline.embedding_model else 'None'}")
+        
+        # Test search
+        test_results = rag_pipeline.search("test query", "ACCOUNTS", 1)
+        print(f"  - Test search results: {len(test_results)}")
+        
+        return True
+    except Exception as e:
+        print(f"❌ RAG Pipeline Debug Error: {e}")
+        return False
+
 def ensure_sample_data():
     """Load documents from admin panel uploads and rebuild RAG pipeline"""
     try:
@@ -423,6 +446,9 @@ def ensure_sample_data():
         pass
 
 def main():
+    # Debug RAG pipeline status
+    debug_rag_pipeline()
+    
     # Ensure sample data exists
     ensure_sample_data()
     
@@ -575,14 +601,19 @@ def main():
                 with st.spinner("🤔 Thinking..."):
                     try:
                         # Get RAG pipeline
-                        rag_pipeline = get_rag_pipeline()
-                        
-                        # Get context for the query
-                        context_chunks, context_text = rag_pipeline.get_context_for_llm(
-                            query=prompt,
-                            department=st.session_state.department_selected,
-                            max_tokens=4000
-                        )
+                        try:
+                            rag_pipeline = get_rag_pipeline()
+                            
+                            # Get context for the query
+                            context_chunks, context_text = rag_pipeline.get_context_for_llm(
+                                query=prompt,
+                                department=st.session_state.department_selected,
+                                max_tokens=4000
+                            )
+                        except Exception as e:
+                            st.error(f"Error initializing RAG pipeline: {e}")
+                            context_chunks = []
+                            context_text = ""
                         
                         if not context_chunks:
                             # No relevant context found - provide helpful response
@@ -606,12 +637,23 @@ def main():
                                 }
                         else:
                             # Generate answer using LLM
-                            response_data = llm_handler.generate_answer(
-                                query=prompt,
-                                context_chunks=context_chunks,
-                                department=st.session_state.department_selected,
-                                language=st.session_state.language_selected
-                            )
+                            try:
+                                response_data = llm_handler.generate_answer(
+                                    query=prompt,
+                                    context_chunks=context_chunks,
+                                    department=st.session_state.department_selected,
+                                    language=st.session_state.language_selected
+                                )
+                            except Exception as e:
+                                st.error(f"Error generating answer: {e}")
+                                response_data = {
+                                    "answer": f"I encountered an error while processing your query. Please try again or contact the {st.session_state.department_selected} department for assistance.",
+                                    "confidence": "low",
+                                    "sources": [],
+                                    "chunk_ids": [],
+                                    "model_used": "error",
+                                    "response_time": 0
+                                }
                         
                         # Display response with improved formatting
                         answer = response_data['answer']
@@ -672,9 +714,11 @@ def main():
                                 )
                             except Exception as e:
                                 # Logging failed, but don't break the query process
-                                print(f"Warning: Could not log query: {e}")
+                                print(f"⚠️ Logging error: {e}")
                         except Exception as e:
-                            st.error(f"Error logging query: {e}")
+                            print(f"⚠️ Database error: {e}")
+                            # Try to log to console as fallback
+                            print(f"FALLBACK LOG: User: {st.session_state.user_email}, Query: {prompt}, Answer: {response_data['answer'][:100]}...")
                     
                     except Exception as e:
                         st.error(f"An error occurred: {str(e)}")

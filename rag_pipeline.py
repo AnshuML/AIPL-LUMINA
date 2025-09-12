@@ -58,17 +58,22 @@ class HybridRAGPipeline:
         bm25_path = self.config.get("bm25_path", "index/bm25.pkl")
         
         # Create directories if they don't exist
-        os.makedirs(os.path.dirname(faiss_path), exist_ok=True)
-        os.makedirs(os.path.dirname(bm25_path), exist_ok=True)
+        try:
+            os.makedirs(os.path.dirname(faiss_path), exist_ok=True)
+            os.makedirs(os.path.dirname(bm25_path), exist_ok=True)
+        except Exception as e:
+            logger.error(f"Error creating directories: {e}")
         
         if os.path.exists(faiss_path) and os.path.exists(bm25_path):
             try:
                 self._load_indices(faiss_path, bm25_path)
-                logger.info("Loaded existing indices")
+                logger.info(f"Loaded existing indices with {len(self.chunk_texts)} chunks")
             except Exception as e:
                 logger.error(f"Error loading indices: {e}")
+                logger.info("Creating new indices...")
                 self._create_new_indices()
         else:
+            logger.info("No existing indices found, creating new ones...")
             self._create_new_indices()
     
     def _load_indices(self, faiss_path: str, bm25_path: str):
@@ -85,12 +90,18 @@ class HybridRAGPipeline:
     
     def _create_new_indices(self):
         """Create new FAISS and BM25 indices."""
-        # Get all documents from database
-        db = next(get_db())
-        documents = db.query(Document).filter(Document.is_processed == True).all()
-        
-        if not documents:
-            logger.warning("No processed documents found. Creating empty indices.")
+        try:
+            # Get all documents from database
+            db = next(get_db())
+            documents = db.query(Document).filter(Document.is_processed == True).all()
+            
+            if not documents:
+                logger.warning("No processed documents found. Creating empty indices.")
+                self._create_empty_indices()
+                return
+        except Exception as e:
+            logger.error(f"Error accessing database: {e}")
+            logger.warning("Creating empty indices due to database error.")
             self._create_empty_indices()
             return
         
@@ -120,32 +131,46 @@ class HybridRAGPipeline:
         
         # Create embeddings
         if self.embedding_model:
-            logger.info(f"Creating embeddings for {len(all_texts)} chunks...")
-            embeddings = self.embedding_model.embed_documents(all_texts)
-            embeddings = np.array(embeddings).astype('float32')
-            
-            # Create FAISS index
-            if len(embeddings) > 0:
-                dimension = embeddings.shape[1]
-                self.faiss_index = faiss.IndexFlatIP(dimension)  # Inner product for cosine similarity
-                faiss.normalize_L2(embeddings)  # Normalize for cosine similarity
-                self.faiss_index.add(embeddings)
-            else:
-                # Create empty index
+            try:
+                logger.info(f"Creating embeddings for {len(all_texts)} chunks...")
+                embeddings = self.embedding_model.embed_documents(all_texts)
+                embeddings = np.array(embeddings).astype('float32')
+                
+                # Create FAISS index
+                if len(embeddings) > 0:
+                    dimension = embeddings.shape[1]
+                    self.faiss_index = faiss.IndexFlatIP(dimension)  # Inner product for cosine similarity
+                    faiss.normalize_L2(embeddings)  # Normalize for cosine similarity
+                    self.faiss_index.add(embeddings)
+                    logger.info(f"Created FAISS index with {len(embeddings)} embeddings")
+                else:
+                    # Create empty index
+                    dimension = 1536  # OpenAI embedding dimension
+                    self.faiss_index = faiss.IndexFlatIP(dimension)
+                    logger.warning("No embeddings created, using empty FAISS index")
+            except Exception as e:
+                logger.error(f"Error creating embeddings: {e}")
+                # Create empty index as fallback
                 dimension = 1536  # OpenAI embedding dimension
                 self.faiss_index = faiss.IndexFlatIP(dimension)
         else:
             # No embedding model available, create empty index
-            logger.info("No embedding model available, creating empty FAISS index")
+            logger.warning("No embedding model available, using empty FAISS index")
             dimension = 1536  # OpenAI embedding dimension
             self.faiss_index = faiss.IndexFlatIP(dimension)
         
         # Create BM25 index
-        if all_texts:
-            tokenized_texts = [text.lower().split() for text in all_texts]
-            self.bm25_index = BM25Okapi(tokenized_texts)
-        else:
-            self.bm25_index = BM25Okapi([])
+        try:
+            if all_texts:
+                tokenized_texts = [text.lower().split() for text in all_texts]
+                self.bm25_index = BM25Okapi(tokenized_texts)
+                logger.info(f"Created BM25 index with {len(all_texts)} documents")
+            else:
+                self.bm25_index = BM25Okapi([["dummy"]])  # BM25 can't handle empty corpus
+                logger.warning("No texts available, using dummy BM25 index")
+        except Exception as e:
+            logger.error(f"Error creating BM25 index: {e}")
+            self.bm25_index = BM25Okapi([["dummy"]])
         
         # Store data
         self.chunk_texts = all_texts
@@ -277,7 +302,12 @@ class HybridRAGPipeline:
     
     def search(self, query: str, department: str = None, top_k: int = 50) -> List[Dict[str, Any]]:
         """Perform hybrid search with improved dense and sparse retrieval."""
-        if not self.chunk_texts:
+        if not self.chunk_texts or len(self.chunk_texts) == 0:
+            logger.warning("No chunks available for search")
+            return []
+        
+        if not query or not query.strip():
+            logger.warning("Empty query provided")
             return []
         
         # Expand search for better coverage
@@ -285,7 +315,7 @@ class HybridRAGPipeline:
         
         # Dense search (FAISS) - improved
         dense_results = []
-        if self.embedding_model and self.faiss_index.ntotal > 0:
+        if self.embedding_model and self.faiss_index is not None and self.faiss_index.ntotal > 0:
             query_embedding = self.embedding_model.embed_query(query)
             query_embedding = np.array([query_embedding]).astype('float32')
             faiss.normalize_L2(query_embedding)
@@ -307,7 +337,7 @@ class HybridRAGPipeline:
         expanded_query = tokenized_query + [word for word in tokenized_query if len(word) > 3]
         
         sparse_results = []
-        if len(self.chunk_texts) > 0:
+        if len(self.chunk_texts) > 0 and self.bm25_index is not None:
             bm25_scores = self.bm25_index.get_scores(expanded_query)
             sparse_indices = sorted(range(len(bm25_scores)), key=lambda i: bm25_scores[i], reverse=True)[:search_top_k]
             

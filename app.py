@@ -429,7 +429,7 @@ def main():
     # Main header
     st.markdown("""
     <div class="main-header">
-        <h1>🏢 Welcome To AIPL LUMINA</h1>
+        <h1>🏢 Welcome To AIPL Lumina</h1>
         <p>Your intelligent companion for company policies and procedures</p>
     </div>
     """, unsafe_allow_html=True)

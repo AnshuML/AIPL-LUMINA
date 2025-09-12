@@ -288,7 +288,7 @@ LANGUAGES = {
 }
 
 def ensure_sample_data():
-    """Ensure the app has sample data for demonstration - only if no documents exist"""
+    """Ensure the app has proper data - rebuild RAG pipeline with existing documents"""
     try:
         db = next(get_db())
         try:
@@ -296,8 +296,53 @@ def ensure_sample_data():
             doc_count = db.query(Document).count()
             chunk_count = db.query(DocumentChunk).count()
             
+            print(f"Found {doc_count} documents with {chunk_count} chunks")
+            
+            # If we have real documents, rebuild RAG pipeline with them
+            if doc_count > 0 and chunk_count > 0:
+                print("Rebuilding RAG pipeline with existing documents...")
+                
+                # Get all processed documents
+                processed_docs = db.query(Document).filter(Document.is_processed == True).all()
+                
+                if processed_docs:
+                    # Rebuild RAG pipeline with existing documents
+                    rag_pipeline = get_rag_pipeline()
+                    
+                    # Clear existing indices and rebuild
+                    try:
+                        # Force rebuild by deleting old indices
+                        import os
+                        if os.path.exists("index/faiss_index"):
+                            os.remove("index/faiss_index")
+                        if os.path.exists("index/bm25.pkl"):
+                            os.remove("index/bm25.pkl")
+                    except:
+                        pass
+                    
+                    # Rebuild with all existing documents
+                    all_texts = []
+                    all_metadata = []
+                    
+                    for doc in processed_docs:
+                        # Get chunks for this document
+                        chunks = db.query(DocumentChunk).filter(DocumentChunk.document_id == doc.id).all()
+                        
+                        for chunk in chunks:
+                            all_texts.append(chunk.content)
+                            all_metadata.append(chunk.chunk_metadata)
+                    
+                    if all_texts:
+                        # Rebuild RAG pipeline
+                        rag_pipeline = get_rag_pipeline()
+                        print(f"Rebuilt RAG pipeline with {len(all_texts)} chunks from {len(processed_docs)} documents")
+                    else:
+                        print("No chunks found in existing documents")
+                else:
+                    print("No processed documents found")
+            
             # Only create sample data if absolutely no documents exist
-            if doc_count == 0 and chunk_count == 0:
+            elif doc_count == 0 and chunk_count == 0:
                 print("No documents found, creating minimal sample data...")
                 
                 # Create a minimal sample document
@@ -319,9 +364,9 @@ def ensure_sample_data():
                 
                 # Create minimal sample chunks
                 sample_chunks = [
-                    "WELCOME TO HR CHATBOT: This is a sample document. Please upload your actual HR documents through the admin panel to get accurate answers.",
+                    "WELCOME TO HR CHATBOT: This is a sample document. Please contact admin to upload your actual HR documents for accurate answers.",
                     "SAMPLE POLICY: This is placeholder content. Upload real documents to get specific policy information.",
-                    "DOCUMENT UPLOAD: Use the admin panel to upload your company's actual HR policies, procedures, and documents for accurate responses."
+                    "DOCUMENT UPLOAD: Contact admin to upload your company's actual HR policies, procedures, and documents for accurate responses."
                 ]
                 
                 for i, chunk_text in enumerate(sample_chunks):
@@ -355,8 +400,6 @@ def ensure_sample_data():
                         "upload_date": datetime.utcnow().isoformat()
                     }] * len(sample_chunks)
                 )
-            else:
-                print(f"Found {doc_count} documents with {chunk_count} chunks - using existing data")
                 
         finally:
             db.close()

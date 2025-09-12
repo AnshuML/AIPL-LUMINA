@@ -310,11 +310,15 @@ def main():
                     st.session_state.user_authenticated = True
                     
                     # Log user authentication
-                    activity_logger.log_user_login(
-                        email=email,
-                        department="Pending Selection",
-                        language="en"
-                    )
+                    try:
+                        activity_logger.log_user_login(
+                            email=email,
+                            department="Pending Selection",
+                            language="en"
+                        )
+                    except Exception as e:
+                        # Logging failed, but don't break the authentication process
+                        print(f"Warning: Could not log user login: {e}")
                     
                     st.success("✅ Authenticated successfully!")
                     st.rerun()
@@ -363,11 +367,15 @@ def main():
                 st.session_state.language_selected = selected_lang
                 
                 # Log department and language selection
-                activity_logger.log_user_login(
-                    email=st.session_state.user_email,
-                    department=st.session_state.department_selected,
-                    language=selected_lang
-                )
+                try:
+                    activity_logger.log_user_login(
+                        email=st.session_state.user_email,
+                        department=st.session_state.department_selected,
+                        language=selected_lang
+                    )
+                except Exception as e:
+                    # Logging failed, but don't break the process
+                    print(f"Warning: Could not log user login: {e}")
                 
                 st.rerun()
         
@@ -496,14 +504,18 @@ def main():
                                 db.commit()
                             
                             # Use comprehensive logging system
-                            activity_logger.log_query(
-                                user_id=user.id,
-                                question=prompt,
-                                answer=response_data['answer'],
-                                department=st.session_state.department_selected,
-                                language=st.session_state.language_selected,
-                                response_data=response_data
-                            )
+                            try:
+                                activity_logger.log_query(
+                                    user_id=user.id,
+                                    question=prompt,
+                                    answer=response_data['answer'],
+                                    department=st.session_state.department_selected,
+                                    language=st.session_state.language_selected,
+                                    response_data=response_data
+                                )
+                            except Exception as e:
+                                # Logging failed, but don't break the query process
+                                print(f"Warning: Could not log query: {e}")
                         except Exception as e:
                             st.error(f"Error logging query: {e}")
                     

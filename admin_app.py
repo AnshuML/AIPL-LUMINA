@@ -535,11 +535,15 @@ def check_admin_auth():
                             st.session_state.admin_logged_in = True
                             
                             # Log admin login
-                            activity_logger.log_admin_action(
-                                admin_email=email,
-                                action_type="admin_login",
-                                details={"login_time": datetime.utcnow().isoformat()}
-                            )
+                            try:
+                                activity_logger.log_admin_action(
+                                    admin_email=email,
+                                    action_type="admin_login",
+                                    details={"login_time": datetime.utcnow().isoformat()}
+                                )
+                            except Exception as e:
+                                # Logging failed, but don't break the login process
+                                print(f"Warning: Could not log admin action: {e}")
                             
                             st.success("✅ Login successful! Redirecting...")
                             st.rerun()

@@ -36,14 +36,18 @@ class ActivityLogger:
             # Streamlit Cloud has /mount/src directory, local doesn't
             if not os.path.exists('/mount/src'):
                 # Create logs directory if it doesn't exist
-                os.makedirs('logs', exist_ok=True)
+                logs_dir = os.path.join(os.getcwd(), 'logs')
+                os.makedirs(logs_dir, exist_ok=True)
+                
                 # Test if we can write to the logs directory
-                test_file = 'logs/test_write.tmp'
+                test_file = os.path.join(logs_dir, 'test_write.tmp')
                 with open(test_file, 'w') as f:
                     f.write('test')
                 os.remove(test_file)
+                
                 # If we get here, we can write to logs directory
-                handlers.append(logging.FileHandler('logs/activity.log'))
+                log_file = os.path.join(logs_dir, 'activity.log')
+                handlers.append(logging.FileHandler(log_file))
                 print("✅ File logging enabled for local development")
             else:
                 print("🌐 Streamlit Cloud detected - using console logging only")

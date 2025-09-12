@@ -545,16 +545,21 @@ def main():
                     # Parse and display assistant response with proper formatting
                     response_data = message.get("response_data", {})
                     if response_data:
-                        # Display main answer without confidence text
+                        # Display main answer with improved formatting
                         answer = response_data.get('answer', message['content'])
-                        # Remove "Answer (in English) — Confidence: High" pattern
+                        # Clean up the response format
                         import re
-                        answer = re.sub(r'\*\*Answer \(in [^)]+\) — Confidence: [^*]+\*\*', '', answer).strip()
+                        answer = re.sub(r'\*\*Answer \(in [^)]+\) — Confidence: [^*]+\*\*\s*', '', answer).strip()
+                        # Remove any remaining summary sections
+                        answer = re.sub(r'\*\*Summary:\*\*.*$', '', answer, flags=re.MULTILINE).strip()
                         st.markdown(f"<div class='chat-message assistant-message'>{answer}</div>", unsafe_allow_html=True)
-                        
-                        # Sources removed for cleaner UI
                     else:
-                        st.markdown(f"<div class='chat-message assistant-message'>{message['content']}</div>", unsafe_allow_html=True)
+                        # Clean up regular messages too
+                        import re
+                        answer = message['content']
+                        answer = re.sub(r'\*\*Answer \(in [^)]+\) — Confidence: [^*]+\*\*\s*', '', answer).strip()
+                        answer = re.sub(r'\*\*Summary:\*\*.*$', '', answer, flags=re.MULTILINE).strip()
+                        st.markdown(f"<div class='chat-message assistant-message'>{answer}</div>", unsafe_allow_html=True)
         
         # Chat input
         if prompt := st.chat_input(f"Ask about {st.session_state.department_selected} policies..."):
@@ -608,11 +613,14 @@ def main():
                                 language=st.session_state.language_selected
                             )
                         
-                        # Display response without confidence text
+                        # Display response with improved formatting
                         answer = response_data['answer']
-                        # Remove "Answer (in English) — Confidence: High" pattern
+                        # Clean up the response format
                         import re
-                        answer = re.sub(r'\*\*Answer \(in [^)]+\) — Confidence: [^*]+\*\*', '', answer).strip()
+                        # Remove the confidence header but keep the content
+                        answer = re.sub(r'\*\*Answer \(in [^)]+\) — Confidence: [^*]+\*\*\s*', '', answer).strip()
+                        # Remove any remaining summary sections
+                        answer = re.sub(r'\*\*Summary:\*\*.*$', '', answer, flags=re.MULTILINE).strip()
                         st.markdown(f"<div class='chat-message assistant-message'>{answer}</div>", unsafe_allow_html=True)
                         
                         # Sources display removed for cleaner UI

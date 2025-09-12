@@ -276,20 +276,23 @@ class HybridRAGPipeline:
         logger.info(f"Added document {document.filename} with {len(chunks)} chunks")
     
     def search(self, query: str, department: str = None, top_k: int = 50) -> List[Dict[str, Any]]:
-        """Perform hybrid search with dense and sparse retrieval."""
+        """Perform hybrid search with improved dense and sparse retrieval."""
         if not self.chunk_texts:
             return []
         
-        # Dense search (FAISS)
+        # Expand search for better coverage
+        search_top_k = min(top_k * 2, 200)  # Search more chunks for better results
+        
+        # Dense search (FAISS) - improved
         dense_results = []
         if self.embedding_model and self.faiss_index.ntotal > 0:
             query_embedding = self.embedding_model.embed_query(query)
             query_embedding = np.array([query_embedding]).astype('float32')
             faiss.normalize_L2(query_embedding)
             
-            dense_scores, dense_indices = self.faiss_index.search(query_embedding, top_k)
+            dense_scores, dense_indices = self.faiss_index.search(query_embedding, search_top_k)
             for score, idx in zip(dense_scores[0], dense_indices[0]):
-                if idx < len(self.chunk_metadata):
+                if idx < len(self.chunk_metadata) and score > 0.1:  # Filter low scores
                     dense_results.append({
                         "chunk_id": self.chunk_metadata[idx]["chunk_id"],
                         "text": self.chunk_texts[idx],
@@ -298,19 +301,18 @@ class HybridRAGPipeline:
                         "type": "dense"
                     })
         
-        # Sparse search (BM25)
+        # Sparse search (BM25) - improved
         tokenized_query = query.lower().split()
-        if len(self.chunk_texts) > 0:
-            bm25_scores = self.bm25_index.get_scores(tokenized_query)
-            sparse_indices = sorted(range(len(bm25_scores)), key=lambda i: bm25_scores[i], reverse=True)[:top_k]
-        else:
-            sparse_indices = []
+        # Add query expansion for better matching
+        expanded_query = tokenized_query + [word for word in tokenized_query if len(word) > 3]
         
         sparse_results = []
         if len(self.chunk_texts) > 0:
-            bm25_scores = self.bm25_index.get_scores(tokenized_query)
+            bm25_scores = self.bm25_index.get_scores(expanded_query)
+            sparse_indices = sorted(range(len(bm25_scores)), key=lambda i: bm25_scores[i], reverse=True)[:search_top_k]
+            
             for idx in sparse_indices:
-                if bm25_scores[idx] > 0:  # Only include non-zero scores
+                if bm25_scores[idx] > 0.1:  # Filter low scores
                     sparse_results.append({
                         "chunk_id": self.chunk_metadata[idx]["chunk_id"],
                         "text": self.chunk_texts[idx],
@@ -319,12 +321,15 @@ class HybridRAGPipeline:
                         "type": "sparse"
                     })
         
-        # Combine and deduplicate results
+        # Combine and deduplicate results with better scoring
         combined_results = self._merge_results(dense_results, sparse_results)
         
         # Filter by department if specified
         if department:
             combined_results = [r for r in combined_results if r["metadata"]["department"] == department]
+        
+        # Sort by combined score for better ranking
+        combined_results.sort(key=lambda x: x["score"], reverse=True)
         
         return combined_results[:top_k]
     
@@ -427,25 +432,28 @@ class HybridRAGPipeline:
         return [results[i] for i in selected]
     
     def get_context_for_llm(self, query: str, department: str = None, max_tokens: int = 4000) -> Tuple[List[Dict], str]:
-        """Get context for LLM with proper formatting and source attribution."""
-        # Search for relevant chunks
-        search_results = self.search(query, department, top_k=50)
+        """Get context for LLM with improved accuracy and better chunk selection."""
+        # Search for relevant chunks with higher top_k for better coverage
+        search_results = self.search(query, department, top_k=100)
         
         if not search_results:
             return [], "No relevant documents found."
         
-        # Re-rank results
-        reranked_results = self.rerank_results(query, search_results, top_n=20)
+        # Re-rank results with more chunks for better accuracy
+        reranked_results = self.rerank_results(query, search_results, top_n=30)
         
-        # Apply MMR for diversity
-        mmr_results = self.apply_mmr(reranked_results, lambda_param=0.7, top_k=10)
+        # Apply MMR for diversity but keep more chunks for better context
+        mmr_results = self.apply_mmr(reranked_results, lambda_param=0.6, top_k=15)
         
-        # Build context with source attribution
+        # Build context with better chunk selection
         context_chunks = []
         context_text = ""
         current_tokens = 0
         
-        for result in mmr_results:
+        # Sort by rerank score to get the most relevant chunks first
+        sorted_results = sorted(mmr_results, key=lambda x: x.get("rerank_score", x["score"]), reverse=True)
+        
+        for result in sorted_results:
             chunk_text = result["text"]
             metadata = result["metadata"]
             
@@ -455,12 +463,17 @@ class HybridRAGPipeline:
             if current_tokens + chunk_tokens > max_tokens:
                 break
             
-            # Format chunk with source attribution
-            formatted_chunk = f"[Source: {metadata['filename']} - {metadata['department']} - Chunk {metadata['chunk_index']}]\n{chunk_text}\n"
+            # Clean and format chunk text for better LLM understanding
+            cleaned_text = chunk_text.strip()
+            if not cleaned_text:
+                continue
+                
+            # Add chunk with better formatting
+            formatted_chunk = f"{cleaned_text}\n\n"
             
             context_chunks.append({
                 "chunk_id": result["chunk_id"],
-                "text": chunk_text,
+                "text": cleaned_text,
                 "metadata": metadata,
                 "score": result.get("rerank_score", result["score"])
             })

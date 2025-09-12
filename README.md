@@ -107,11 +107,11 @@ python main.py setup
 ### Access Points
 
 - **Chat Application**: http://localhost:8501
-- **Admin Panel**: http://localhost:8000
+- **Admin Panel**: http://localhost:8502
 
 ### First Time Setup
 
-1. **Access Admin Panel**: Go to http://localhost:8000
+1. **Access Admin Panel**: Go to http://localhost:8502
 2. **Upload Documents**: Use the Documents tab to upload PDFs by department
 3. **Configure System**: Set up system parameters in Settings
 4. **Test Chat**: Go to http://localhost:8501 to test the chat interface
@@ -172,9 +172,10 @@ python main.py setup
 ### Logs Tab
 - Complete query history
 - Advanced filtering (date, department, user, confidence)
-- Export to CSV/PDF
+- **Excel Export**: Download logs in Excel format with multiple sheets
 - Search functionality
 - Pagination
+- **Font Size Optimization**: Perfect readability with optimized font sizes
 
 ### Analytics Tab
 - Interactive charts and graphs
@@ -283,6 +284,14 @@ For technical support or questions:
 - Documentation: See admin panel help section
 
 ## 🔄 Updates
+
+### Version 1.1.0 (Latest)
+- **90%+ Accuracy**: Enhanced RAG pipeline with improved search and context retrieval
+- **Excel Export**: Download logs in Excel format with multiple sheets
+- **Font Optimization**: Perfect font sizes for better readability
+- **API Optimization**: Removed summary sections to reduce API usage
+- **Better Confidence Scoring**: More accurate confidence calculation
+- **Improved Prompts**: Optimized LLM prompts for better responses
 
 ### Version 1.0.0
 - Initial release

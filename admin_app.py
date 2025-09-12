@@ -8,6 +8,8 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from dotenv import load_dotenv
+import io
+from datetime import datetime
 
 # Load environment variables
 load_dotenv()
@@ -62,10 +64,16 @@ st.markdown("""
         background-color: #1a1a1a !important;
     }
     
-    /* All text elements */
-    h1, h2, h3, h4, h5, h6, p, span, div {
-        color: #e2e8f0 !important;
-    }
+    /* All text elements with proper font sizes */
+    h1 { color: #e2e8f0 !important; font-size: 2rem !important; }
+    h2 { color: #e2e8f0 !important; font-size: 1.5rem !important; }
+    h3 { color: #e2e8f0 !important; font-size: 1.25rem !important; }
+    h4 { color: #e2e8f0 !important; font-size: 1.1rem !important; }
+    h5 { color: #e2e8f0 !important; font-size: 1rem !important; }
+    h6 { color: #e2e8f0 !important; font-size: 0.9rem !important; }
+    p { color: #e2e8f0 !important; font-size: 0.9rem !important; }
+    span { color: #e2e8f0 !important; font-size: 0.9rem !important; }
+    div { color: #e2e8f0 !important; font-size: 0.9rem !important; }
     
     /* All buttons */
     .stButton > button {
@@ -269,7 +277,7 @@ st.markdown("""
     }
     
     .main-header h1 {
-        font-size: 3rem;
+        font-size: 2.5rem;
         font-weight: 700;
         margin: 0;
         text-shadow: 0 2px 4px rgba(0,0,0,0.3);
@@ -278,7 +286,7 @@ st.markdown("""
     }
     
     .main-header p {
-        font-size: 1.2rem;
+        font-size: 1rem;
         margin: 0.5rem 0 0 0;
         opacity: 0.9;
         position: relative;
@@ -971,7 +979,7 @@ def main():
         st.header("📋 System Logs & Activity")
         
         # Filter options
-        col1, col2, col3, col4 = st.columns(4)
+        col1, col2, col3, col4, col5 = st.columns(5)
         with col1:
             log_type = st.selectbox("📝 Log Type", ["All", "Queries", "User Logins", "Admin Actions"], help="Filter by log type")
         with col2:
@@ -981,6 +989,9 @@ def main():
         with col4:
             if st.button("🔍 Apply Filters", use_container_width=True):
                 st.info("🔍 Filters applied!")
+        with col5:
+            if st.button("📊 Export to Excel", use_container_width=True):
+                st.info("📊 Preparing Excel export...")
         
         # Show department-specific information
         if department_filter != "All":
@@ -1132,6 +1143,112 @@ def main():
                     db.close()
             except Exception as e:
                 st.error(f"❌ Error fetching admin logs: {str(e)}")
+        
+        # Excel Export Section
+        st.subheader("📊 Export Logs to Excel")
+        
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            export_type = st.selectbox("📝 Export Type", ["All Logs", "Queries Only", "User Logins Only", "Admin Actions Only"], help="Select what to export")
+        
+        with col2:
+            export_days = st.number_input("📅 Last N Days", min_value=1, max_value=365, value=30, help="Number of days to include")
+        
+        with col3:
+            if st.button("📥 Download Excel File", use_container_width=True):
+                try:
+                    # Get data based on export type
+                    db = next(get_db())
+                    try:
+                        if export_type == "All Logs" or export_type == "Queries Only":
+                            # Export queries
+                            query_data = db.query(Query, User).join(User, Query.user_id == User.id).order_by(desc(Query.created_at)).limit(1000).all()
+                            
+                            if query_data:
+                                queries_df = pd.DataFrame([{
+                                    'Timestamp': query.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                                    'User Email': user.email,
+                                    'Department': query.department,
+                                    'Language': query.language,
+                                    'Question': query.question_text,
+                                    'Answer': query.answer_text[:500] if query.answer_text else '',
+                                    'Confidence': query.confidence_score,
+                                    'Response Time (s)': query.response_time,
+                                    'Model Used': query.model_used
+                                } for query, user in query_data])
+                            else:
+                                queries_df = pd.DataFrame()
+                        
+                        if export_type == "All Logs" or export_type == "User Logins Only":
+                            # Export user logins
+                            users_data = db.query(User).order_by(desc(User.last_login)).limit(1000).all()
+                            
+                            if users_data:
+                                users_df = pd.DataFrame([{
+                                    'User Email': user.email,
+                                    'Department': user.department or 'Not Set',
+                                    'Preferred Language': user.preferred_language,
+                                    'Last Login': user.last_login.strftime('%Y-%m-%d %H:%M:%S') if user.last_login else 'Never',
+                                    'Created At': user.created_at.strftime('%Y-%m-%d %H:%M:%S') if hasattr(user, 'created_at') and user.created_at else 'Unknown'
+                                } for user in users_data])
+                            else:
+                                users_df = pd.DataFrame()
+                        
+                        if export_type == "All Logs" or export_type == "Admin Actions Only":
+                            # Export admin actions
+                            admin_data = db.query(AdminAction, User).join(User, AdminAction.admin_id == User.id).order_by(desc(AdminAction.created_at)).limit(1000).all()
+                            
+                            if admin_data:
+                                admin_df = pd.DataFrame([{
+                                    'Timestamp': action.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                                    'Admin Email': admin.email,
+                                    'Action Type': action.action_type,
+                                    'Target Type': action.target_type or 'N/A',
+                                    'Details': str(action.details) if action.details else 'No details'
+                                } for action, admin in admin_data])
+                            else:
+                                admin_df = pd.DataFrame()
+                        
+                        # Create Excel file
+                        output = io.BytesIO()
+                        
+                        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                            if export_type == "All Logs":
+                                if not queries_df.empty:
+                                    queries_df.to_excel(writer, sheet_name='User Queries', index=False)
+                                if not users_df.empty:
+                                    users_df.to_excel(writer, sheet_name='User Logins', index=False)
+                                if not admin_df.empty:
+                                    admin_df.to_excel(writer, sheet_name='Admin Actions', index=False)
+                            elif export_type == "Queries Only" and not queries_df.empty:
+                                queries_df.to_excel(writer, sheet_name='User Queries', index=False)
+                            elif export_type == "User Logins Only" and not users_df.empty:
+                                users_df.to_excel(writer, sheet_name='User Logins', index=False)
+                            elif export_type == "Admin Actions Only" and not admin_df.empty:
+                                admin_df.to_excel(writer, sheet_name='Admin Actions', index=False)
+                        
+                        output.seek(0)
+                        
+                        # Download button
+                        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                        filename = f"aipl_logs_{export_type.lower().replace(' ', '_')}_{timestamp}.xlsx"
+                        
+                        st.download_button(
+                            label="📥 Download Excel File",
+                            data=output.getvalue(),
+                            file_name=filename,
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                            use_container_width=True
+                        )
+                        
+                        st.success(f"✅ Excel file '{filename}' ready for download!")
+                        
+                    finally:
+                        db.close()
+                        
+                except Exception as e:
+                    st.error(f"❌ Error creating Excel file: {str(e)}")
     
     with tab4:
         st.header("📈 Analytics & Insights")

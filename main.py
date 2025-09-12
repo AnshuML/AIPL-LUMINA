@@ -92,7 +92,7 @@ def run_admin_app():
     try:
         subprocess.run([
             sys.executable, "-m", "streamlit", "run", "admin_app.py",
-            "--server.port", "8000",
+            "--server.port", "8502",
             "--server.address", "127.0.0.1",
             "--browser.gatherUsageStats", "false"
         ])
@@ -123,9 +123,9 @@ def show_help():
 
 Usage: python main.py [command]
 
-Commands:
+    Commands:
   chat        Run only the Streamlit chat application (port 8501)
-  admin       Run only the FastAPI admin panel (port 8000)
+  admin       Run only the Streamlit admin panel (port 8502)
   both        Run both applications concurrently (default)
   install     Install dependencies only
   setup       Setup directories and check environment
@@ -141,7 +141,7 @@ Optional Environment Variables:
 
 Access Points:
   Chat Application: http://localhost:8501
-  Admin Panel:      http://localhost:8000
+  Admin Panel:      http://localhost:8502
 
 For more information, see the README.md file.
 """)

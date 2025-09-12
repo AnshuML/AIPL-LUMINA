@@ -9,6 +9,7 @@ import json
 from datetime import datetime
 from typing import Dict, Any, Optional
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from models import User, Query, AdminAction, get_db
 
 class ActivityLogger:
@@ -229,16 +230,16 @@ class ActivityLogger:
                 total_queries = db.query(Query).filter(Query.created_at >= cutoff_date).count()
                 
                 # Department breakdown
-                dept_queries = db.query(Query.department, db.func.count(Query.id)).filter(
+                dept_queries = db.query(Query.department, func.count(Query.id)).filter(
                     Query.created_at >= cutoff_date
                 ).group_by(Query.department).all()
                 
                 # Top users
-                top_users = db.query(User.email, db.func.count(Query.id)).join(
+                top_users = db.query(User.email, func.count(Query.id)).join(
                     Query, User.id == Query.user_id
                 ).filter(Query.created_at >= cutoff_date).group_by(
                     User.email
-                ).order_by(db.func.count(Query.id).desc()).limit(5).all()
+                ).order_by(func.count(Query.id).desc()).limit(5).all()
                 
                 return {
                     "active_users": active_users,

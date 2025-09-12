@@ -100,12 +100,22 @@ class LLMHandler:
         if not context_chunks:
             return "low"
         
-        # Check if we have high-quality chunks
-        high_score_chunks = [c for c in context_chunks if c.get("score", 0) > 0.7]
+        # Get rerank scores if available (more accurate than BM25 scores)
+        scores = [c.get("rerank_score", c.get("score", 0)) for c in context_chunks]
         
-        if len(high_score_chunks) >= 3:
+        if not scores:
+            return "low"
+        
+        # Calculate average score
+        avg_score = sum(scores) / len(scores)
+        max_score = max(scores)
+        
+        # More sophisticated confidence calculation
+        if max_score > 0.8 and avg_score > 0.6 and len(context_chunks) >= 3:
             return "high"
-        elif len(high_score_chunks) >= 1 or len(context_chunks) >= 2:
+        elif max_score > 0.6 and avg_score > 0.4 and len(context_chunks) >= 2:
+            return "medium"
+        elif max_score > 0.4 and len(context_chunks) >= 1:
             return "medium"
         else:
             return "low"
@@ -128,34 +138,36 @@ class LLMHandler:
         
         lang_name = language_names.get(language, "English")
         
-        return f"""You are an AI assistant for Ajit Industries Pvt. Ltd. You are helping with {department} department queries.
+        return f"""You are an expert AI assistant for Ajit Industries Pvt. Ltd. specializing in {department} department policies and procedures.
 
 RESPOND IN {lang_name.upper()}
 
-CONTEXT FROM COMPANY DOCUMENTS:
+COMPANY DOCUMENTS CONTEXT:
 {context}
 
 USER QUESTION:
 {query}
 
-INSTRUCTIONS:
-1. Answer ONLY based on the provided context
-2. If the context doesn't contain enough information, say so clearly
+CRITICAL INSTRUCTIONS:
+1. Answer ONLY based on the provided context - be precise and accurate
+2. If context is insufficient, clearly state "I don't have enough information in our {department} documents to answer this question. Please contact the {department} department for assistance."
 3. For sensitive information (personal data, financial details, legal matters), recommend contacting HR/admin
-4. Provide a clean, professional answer without technical references
-5. Use this format:
+4. Provide detailed, actionable answers with specific steps when applicable
+5. Use clear formatting with bullet points or numbered lists for procedures
+6. Be conversational but professional
+7. Focus on practical, implementable guidance
 
+RESPONSE FORMAT:
 **Answer (in {lang_name}) — Confidence: [High/Medium/Low]**
 
-[Provide a clear, comprehensive answer in paragraph form or numbered points as appropriate]
-
-**Summary:** [1-2 sentence summary]
+[Provide a comprehensive, detailed answer with specific information from the context. Use bullet points or numbered lists for procedures. Be thorough but concise.]
 
 IMPORTANT:
-- Do NOT include source references, document names, or chunk IDs in your answer
-- Provide a clean, user-friendly response
+- Do NOT include source references, document names, or chunk IDs
+- Provide actionable, practical guidance
 - If you cannot find relevant information, clearly state this
-- For sensitive queries, recommend contacting HR/admin"""
+- For sensitive queries, recommend contacting the appropriate department
+- Be specific about policies, procedures, and requirements"""
 
     def _extract_sources(self, context_chunks: List[Dict]) -> List[Dict]:
         """Extract source information for display."""

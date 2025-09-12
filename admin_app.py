@@ -339,15 +339,16 @@ st.markdown("""
         border-radius: 20px;
         padding: 3rem 2rem;
         text-align: center;
-        background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+        background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
         transition: all 0.3s ease;
         position: relative;
         overflow: hidden;
+        color: #e2e8f0;
     }
     
     .upload-area:hover {
         border-color: #764ba2;
-        background: linear-gradient(135deg, #edf2f7 0%, #e2e8f0 100%);
+        background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
         transform: scale(1.02);
     }
     
@@ -361,7 +362,7 @@ st.markdown("""
     
     /* Log Entries */
     .log-entry {
-        background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+        background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
         padding: 1.5rem;
         border-radius: 15px;
         margin: 1rem 0;
@@ -920,12 +921,12 @@ def main():
                             dept_color = dept_colors.get(doc.department, "#667eea")
                             
                             st.markdown(f"""
-                            <div style="padding: 1rem; background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%); border-radius: 10px; border-left: 4px solid {dept_color};">
+                            <div style="padding: 1rem; background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%); border-radius: 10px; border-left: 4px solid {dept_color};">
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                                    <h4 style="margin: 0; color: #2d3748;">📄 {doc.original_filename}</h4>
+                                    <h4 style="margin: 0; color: #e2e8f0;">📄 {doc.original_filename}</h4>
                                     <span style="background: {dept_color}; color: white; padding: 0.25rem 0.75rem; border-radius: 15px; font-size: 0.8rem; font-weight: 600;">🏢 {doc.department}</span>
                                 </div>
-                                <p style="margin: 0; color: #718096;">
+                                <p style="margin: 0; color: #a0aec0;">
                                     📏 Size: {doc.file_size:,} bytes | 
                                     📅 Uploaded: {doc.upload_date.strftime('%Y-%m-%d %H:%M')} |
                                     {'✅ Processed' if doc.is_processed else '⏳ Pending'} |
@@ -955,10 +956,10 @@ def main():
                                     st.error(f"❌ Error deleting document: {str(e)}")
                 else:
                     st.markdown("""
-                    <div style="text-align: center; padding: 3rem; background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%); border-radius: 15px; border: 2px dashed #cbd5e0;">
+                    <div style="text-align: center; padding: 3rem; background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%); border-radius: 15px; border: 2px dashed #4a5568;">
                         <div style="font-size: 4rem; margin-bottom: 1rem;">📁</div>
-                        <h3 style="color: #4a5568; margin-bottom: 0.5rem;">No Documents Yet</h3>
-                        <p style="color: #718096; margin: 0;">Upload your first PDF document to get started</p>
+                        <h3 style="color: #e2e8f0; margin-bottom: 0.5rem;">No Documents Yet</h3>
+                        <p style="color: #a0aec0; margin: 0;">Upload your first PDF document to get started</p>
                     </div>
                     """, unsafe_allow_html=True)
             finally:

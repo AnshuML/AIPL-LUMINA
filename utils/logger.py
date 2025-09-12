@@ -19,16 +19,24 @@ class ActivityLogger:
     
     def setup_logging(self):
         """Setup file and console logging"""
-        # Create logs directory if it doesn't exist
-        os.makedirs('logs', exist_ok=True)
-        
-        # Setup handlers
+        # Setup handlers - console only for Streamlit Cloud compatibility
         handlers = [logging.StreamHandler()]
         
-        # Only add file handler if logs directory is writable
+        # Only try file logging in local development
+        # Streamlit Cloud has restricted file system access
         try:
-            handlers.append(logging.FileHandler('logs/activity.log'))
-        except (OSError, PermissionError):
+            # Check if we're in a local environment (not Streamlit Cloud)
+            if not os.path.exists('/mount/src'):
+                # Create logs directory if it doesn't exist
+                os.makedirs('logs', exist_ok=True)
+                # Test if we can write to the logs directory
+                test_file = 'logs/test_write.tmp'
+                with open(test_file, 'w') as f:
+                    f.write('test')
+                os.remove(test_file)
+                # If we get here, we can write to logs directory
+                handlers.append(logging.FileHandler('logs/activity.log'))
+        except (OSError, PermissionError, FileNotFoundError):
             # If we can't write to logs directory, just use console logging
             pass
         

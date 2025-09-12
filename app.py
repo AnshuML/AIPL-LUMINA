@@ -288,7 +288,7 @@ LANGUAGES = {
 }
 
 def ensure_sample_data():
-    """Ensure the app has proper data - rebuild RAG pipeline with existing documents"""
+    """Load documents from admin panel uploads and rebuild RAG pipeline"""
     try:
         db = next(get_db())
         try:
@@ -298,44 +298,46 @@ def ensure_sample_data():
             
             print(f"Found {doc_count} documents with {chunk_count} chunks")
             
-            # If we have real documents, rebuild RAG pipeline with them
+            # Always rebuild RAG pipeline with existing documents
             if doc_count > 0 and chunk_count > 0:
-                print("Rebuilding RAG pipeline with existing documents...")
+                print("Loading documents from admin panel uploads...")
                 
                 # Get all processed documents
                 processed_docs = db.query(Document).filter(Document.is_processed == True).all()
                 
                 if processed_docs:
-                    # Rebuild RAG pipeline with existing documents
-                    rag_pipeline = get_rag_pipeline()
+                    print(f"Found {len(processed_docs)} processed documents")
                     
-                    # Clear existing indices and rebuild
+                    # Clear existing indices to force rebuild
                     try:
-                        # Force rebuild by deleting old indices
                         import os
                         if os.path.exists("index/faiss_index"):
                             os.remove("index/faiss_index")
                         if os.path.exists("index/bm25.pkl"):
                             os.remove("index/bm25.pkl")
-                    except:
-                        pass
+                        print("Cleared old indices")
+                    except Exception as e:
+                        print(f"Error clearing indices: {e}")
                     
                     # Rebuild with all existing documents
                     all_texts = []
                     all_metadata = []
                     
                     for doc in processed_docs:
+                        print(f"Loading document: {doc.filename} (Department: {doc.department})")
+                        
                         # Get chunks for this document
                         chunks = db.query(DocumentChunk).filter(DocumentChunk.document_id == doc.id).all()
+                        print(f"  Found {len(chunks)} chunks")
                         
                         for chunk in chunks:
                             all_texts.append(chunk.content)
                             all_metadata.append(chunk.chunk_metadata)
                     
                     if all_texts:
-                        # Rebuild RAG pipeline
+                        # Force rebuild RAG pipeline
                         rag_pipeline = get_rag_pipeline()
-                        print(f"Rebuilt RAG pipeline with {len(all_texts)} chunks from {len(processed_docs)} documents")
+                        print(f"Successfully loaded {len(all_texts)} chunks from {len(processed_docs)} documents")
                     else:
                         print("No chunks found in existing documents")
                 else:
@@ -400,12 +402,16 @@ def ensure_sample_data():
                         "upload_date": datetime.utcnow().isoformat()
                     }] * len(sample_chunks)
                 )
+            else:
+                print("Documents exist but no chunks found - this might indicate a processing issue")
                 
         finally:
             db.close()
     except Exception as e:
         # If there's an error, just continue - the app should still work
         print(f"Error in ensure_sample_data: {e}")
+        import traceback
+        traceback.print_exc()
         pass
 
 def main():
@@ -515,21 +521,6 @@ def main():
                 st.session_state.messages = []
                 st.rerun()
             
-            # Show current documents (read-only)
-            st.subheader("📚 Available Documents")
-            try:
-                db = next(get_db())
-                try:
-                    docs = db.query(Document).filter(Document.department == st.session_state.department_selected).all()
-                    if docs:
-                        for doc in docs:
-                            st.markdown(f"• **{doc.filename}** ({doc.chunk_count} chunks) - {doc.upload_date.strftime('%Y-%m-%d')}")
-                    else:
-                        st.info("No documents available yet. Contact admin to upload documents for your department.")
-                finally:
-                    db.close()
-            except Exception as e:
-                st.error(f"Error loading documents: {e}")
 
     # Main chat interface
     if st.session_state.user_authenticated and st.session_state.department_selected and st.session_state.language_selected:

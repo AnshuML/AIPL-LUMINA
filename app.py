@@ -13,7 +13,6 @@ load_dotenv()
 
 # Set up paths for cloud deployment
 import sys
-import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 # Set environment variables for cloud deployment
@@ -365,7 +364,6 @@ def ensure_sample_data():
                     
                     # Clear existing indices to force rebuild
                     try:
-                        import os
                         if os.path.exists("index/faiss_index"):
                             os.remove("index/faiss_index")
                         if os.path.exists("index/bm25.pkl"):

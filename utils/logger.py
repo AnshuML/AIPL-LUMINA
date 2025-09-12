@@ -26,6 +26,7 @@ class ActivityLogger:
         # Streamlit Cloud has restricted file system access
         try:
             # Check if we're in a local environment (not Streamlit Cloud)
+            # Streamlit Cloud has /mount/src directory, local doesn't
             if not os.path.exists('/mount/src'):
                 # Create logs directory if it doesn't exist
                 os.makedirs('logs', exist_ok=True)
@@ -36,9 +37,12 @@ class ActivityLogger:
                 os.remove(test_file)
                 # If we get here, we can write to logs directory
                 handlers.append(logging.FileHandler('logs/activity.log'))
-        except (OSError, PermissionError, FileNotFoundError):
+                print("✅ File logging enabled for local development")
+            else:
+                print("🌐 Streamlit Cloud detected - using console logging only")
+        except (OSError, PermissionError, FileNotFoundError) as e:
             # If we can't write to logs directory, just use console logging
-            pass
+            print(f"⚠️ File logging disabled: {e}")
         
         logging.basicConfig(
             level=logging.INFO,

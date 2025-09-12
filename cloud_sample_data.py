@@ -12,16 +12,24 @@ def create_cloud_sample_data():
     try:
         db = next(get_db())
         
-        # Check if we already have documents
+        # Check if we already have documents from all departments
         existing_docs = db.query(Document).count()
-        if existing_docs > 0:
-            print(f"✅ Found {existing_docs} existing documents, skipping sample data creation")
+        dept_docs = db.query(Document.department).distinct().all()
+        existing_depts = [dept[0] for dept in dept_docs if dept[0]]
+        
+        required_depts = ["HR", "IT", "ACCOUNTS", "SALES"]
+        missing_depts = [dept for dept in required_depts if dept not in existing_depts]
+        
+        if not missing_depts:
+            print(f"✅ Found documents for all departments ({existing_docs} total), skipping sample data creation")
             return True
+        
+        print(f"📋 Found {existing_docs} existing documents, missing departments: {missing_depts}")
         
         print("🌐 Creating sample data for cloud deployment...")
         
-        # Sample documents data
-        sample_documents = [
+        # Sample documents data - only create missing departments
+        all_sample_documents = [
             {
                 "filename": "hr_policies.pdf",
                 "original_filename": "hr_policies.pdf",
@@ -182,6 +190,15 @@ def create_cloud_sample_data():
                 "language": "en"
             }
         ]
+        
+        # Filter sample documents to only include missing departments
+        sample_documents = [doc for doc in all_sample_documents if doc["department"] in missing_depts]
+        
+        if not sample_documents:
+            print("✅ No missing departments to create sample data for")
+            return True
+        
+        print(f"📄 Creating sample data for departments: {[doc['department'] for doc in sample_documents]}")
         
         # Create documents and chunks
         for doc_data in sample_documents:

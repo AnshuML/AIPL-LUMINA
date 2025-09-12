@@ -340,6 +340,17 @@ def ensure_sample_data():
             from cloud_sample_data import create_cloud_sample_data
             if create_cloud_sample_data():
                 print("✅ Sample data created for cloud deployment")
+                # Force RAG pipeline rebuild after creating sample data
+                try:
+                    rag_pipeline = get_rag_pipeline()
+                    # Clear existing indices to force rebuild
+                    if os.path.exists("index/faiss_index"):
+                        os.remove("index/faiss_index")
+                    if os.path.exists("index/bm25.pkl"):
+                        os.remove("index/bm25.pkl")
+                    print("🔄 Cleared indices for rebuild with sample data")
+                except Exception as e:
+                    print(f"⚠️ Error clearing indices: {e}")
             else:
                 print("❌ Failed to create sample data")
                 return

@@ -692,12 +692,6 @@ def main():
         """, unsafe_allow_html=True)
 
     # Footer
-    st.markdown("---")
-    st.markdown("""
-    <div style="text-align: center; color: #666; font-size: 0.8rem;">
-        <p>© 2024 Ajit Industries Pvt. Ltd. | Powered by AI | <a href="http://localhost:8000/admin" target="_blank">Admin Panel</a></p>
-    </div>
-    """, unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()

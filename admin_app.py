@@ -15,9 +15,20 @@ load_dotenv()
 # Import our modules
 try:
     from models import get_db, User, Document, Query, AdminAction, SupportTicket
-    from utils.logger import activity_logger
     from sqlalchemy.orm import Session
     from sqlalchemy import func, desc, and_
+    
+    # Conditional logger import - only on local development
+    if not os.path.exists('/mount/src'):
+        from utils.logger import activity_logger
+    else:
+        # Create a dummy logger for Streamlit Cloud
+        class DummyLogger:
+            def log_user_login(self, *args, **kwargs): pass
+            def log_query(self, *args, **kwargs): pass
+            def log_admin_action(self, *args, **kwargs): pass
+        activity_logger = DummyLogger()
+    
     DB_AVAILABLE = True
 except Exception as e:
     DB_AVAILABLE = False

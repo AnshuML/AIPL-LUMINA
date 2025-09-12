@@ -14,9 +14,19 @@ load_dotenv()
 # Import our enhanced modules
 from rag_pipeline import get_rag_pipeline
 from utils.llm_handler import llm_handler
-from utils.logger import activity_logger
 from models import get_db, Query, User
 from sqlalchemy.orm import Session
+
+# Conditional logger import - only on local development
+if not os.path.exists('/mount/src'):
+    from utils.logger import activity_logger
+else:
+    # Create a dummy logger for Streamlit Cloud
+    class DummyLogger:
+        def log_user_login(self, *args, **kwargs): pass
+        def log_query(self, *args, **kwargs): pass
+        def log_admin_action(self, *args, **kwargs): pass
+    activity_logger = DummyLogger()
 
 # Add this function
 def render_markdown(text):

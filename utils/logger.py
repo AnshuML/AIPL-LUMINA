@@ -15,7 +15,14 @@ class ActivityLogger:
     """Centralized logging system for all user activities"""
     
     def __init__(self):
-        self.setup_logging()
+        # Check if we're on Streamlit Cloud
+        if os.path.exists('/mount/src'):
+            # On Streamlit Cloud - disable all logging
+            self.logger = None
+            print("🌐 Streamlit Cloud detected - logging disabled")
+        else:
+            # Local development - enable logging
+            self.setup_logging()
     
     def setup_logging(self):
         """Setup file and console logging"""
@@ -53,6 +60,10 @@ class ActivityLogger:
     
     def log_user_login(self, email: str, department: str, language: str, ip_address: str = None):
         """Log user login activity"""
+        # Skip logging on Streamlit Cloud
+        if not self.logger:
+            return
+            
         try:
             db = next(get_db())
             try:
@@ -98,6 +109,10 @@ class ActivityLogger:
     def log_query(self, user_id: int, question: str, answer: str, department: str, 
                   language: str, response_data: Dict[str, Any]):
         """Log user query with complete metadata"""
+        # Skip logging on Streamlit Cloud
+        if not self.logger:
+            return
+            
         try:
             db = next(get_db())
             try:
@@ -142,6 +157,10 @@ class ActivityLogger:
     def log_admin_action(self, admin_email: str, action_type: str, target_type: str = None, 
                         target_id: int = None, details: Dict[str, Any] = None):
         """Log admin actions"""
+        # Skip logging on Streamlit Cloud
+        if not self.logger:
+            return
+            
         try:
             db = next(get_db())
             try:

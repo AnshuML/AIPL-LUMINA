@@ -14,7 +14,7 @@ load_dotenv()
 # Import our enhanced modules
 from rag_pipeline import get_rag_pipeline
 from utils.llm_handler import llm_handler
-from models import get_db, Query, User
+from models import get_db, Query, User, Document, DocumentChunk
 from sqlalchemy.orm import Session
 
 # Conditional logger import - only on local development
@@ -287,7 +287,86 @@ LANGUAGES = {
     "zh": "Chinese"
 }
 
+def ensure_sample_data():
+    """Ensure the app has sample data for demonstration"""
+    try:
+        db = next(get_db())
+        try:
+            # Check if we have any documents
+            doc_count = db.query(Document).count()
+            chunk_count = db.query(DocumentChunk).count()
+            
+            if doc_count == 0 or chunk_count == 0:
+                # Create sample HR document
+                sample_doc = Document(
+                    filename="sample_hr_policies.pdf",
+                    original_filename="sample_hr_policies.pdf",
+                    department="HR",
+                    file_path="sample_hr_policies.pdf",
+                    file_size=5000,
+                    upload_user="system",
+                    upload_date=datetime.utcnow(),
+                    language="en",
+                    is_processed=True,
+                    chunk_count=0
+                )
+                db.add(sample_doc)
+                db.commit()
+                db.refresh(sample_doc)
+                
+                # Create sample chunks with HR policies
+                sample_chunks = [
+                    "ATTENDANCE POLICY: All employees must arrive between 9:00 AM and 9:30 AM. Late arrivals after 9:30 AM will be marked as half-day. No grace period is allowed.",
+                    "LEAVE POLICY: Employees are entitled to 12 casual leaves, 12 sick leaves, and 12 earned leaves per year. Leave applications must be submitted at least 2 days in advance.",
+                    "SHORT LEAVE: Employees can take 2 short leaves per month, provided they complete at least 7 hours of work on that day.",
+                    "HOLIDAY POLICY: All Sundays and declared holidays are off days. Employees working on holidays will get compensatory leave.",
+                    "OUTDOOR DUTY: OD requests must be logged in the system and approved by the reporting manager before leaving the office.",
+                    "REGULARIZATION: Attendance regularization requests must be submitted within 3 days of absence with proper justification.",
+                    "WORK FROM HOME: WFH requests must be approved by the manager and logged in the system. Maximum 2 WFH days per week allowed."
+                ]
+                
+                for i, chunk_text in enumerate(sample_chunks):
+                    chunk = DocumentChunk(
+                        document_id=sample_doc.id,
+                        chunk_index=i,
+                        content=chunk_text,
+                        chunk_metadata={
+                            "filename": "sample_hr_policies.pdf",
+                            "department": "HR",
+                            "file_path": "sample_hr_policies.pdf",
+                            "upload_date": datetime.utcnow().isoformat()
+                        }
+                    )
+                    db.add(chunk)
+                
+                # Update document chunk count
+                sample_doc.chunk_count = len(sample_chunks)
+                sample_doc.last_indexed = datetime.utcnow()
+                
+                db.commit()
+                
+                # Rebuild RAG pipeline with new data
+                rag_pipeline = get_rag_pipeline()
+                rag_pipeline.add_documents(
+                    texts=sample_chunks,
+                    metadata=[{
+                        "filename": "sample_hr_policies.pdf",
+                        "department": "HR",
+                        "file_path": "sample_hr_policies.pdf",
+                        "upload_date": datetime.utcnow().isoformat()
+                    }] * len(sample_chunks)
+                )
+                
+        finally:
+            db.close()
+    except Exception as e:
+        # If there's an error, just continue - the app should still work
+        pass
+
 def main():
+    # Ensure sample data exists
+    ensure_sample_data()
+    
     # Main header
     st.markdown("""
     <div class="main-header">
@@ -441,15 +520,25 @@ def main():
                         )
                         
                         if not context_chunks:
-                            # No relevant context found
-                            response_data = {
-                                "answer": f"I couldn't find specific information about your query in the {st.session_state.department_selected} department documents. Please try rephrasing your question or contact HR for assistance.",
-                                "confidence": "low",
-                                "sources": [],
-                                "chunk_ids": [],
-                                "model_used": "gpt-4",
-                                "response_time": 0
-                            }
+                            # No relevant context found - provide helpful response
+                            if st.session_state.department_selected == "HR":
+                                response_data = {
+                                    "answer": f"I couldn't find specific information about '{prompt}' in the HR department documents. However, I can help you with general HR policies including:\n\n• **Attendance Policy**: Working hours, late arrivals, grace periods\n• **Leave Policy**: Casual leave, sick leave, earned leave, short leave\n• **Holiday Policy**: Sundays, declared holidays, compensatory leave\n• **Outdoor Duty**: OD requests and approval process\n• **Work From Home**: WFH policies and procedures\n\nPlease try rephrasing your question or ask about any of these specific topics. You can also contact HR for more detailed information.",
+                                    "confidence": "low",
+                                    "sources": [],
+                                    "chunk_ids": [],
+                                    "model_used": "gpt-4",
+                                    "response_time": 0
+                                }
+                            else:
+                                response_data = {
+                                    "answer": f"I couldn't find specific information about your query in the {st.session_state.department_selected} department documents. Please try rephrasing your question or contact the {st.session_state.department_selected} department for assistance.",
+                                    "confidence": "low",
+                                    "sources": [],
+                                    "chunk_ids": [],
+                                    "model_used": "gpt-4",
+                                    "response_time": 0
+                                }
                         else:
                             # Generate answer using LLM
                             response_data = llm_handler.generate_answer(

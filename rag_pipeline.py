@@ -277,7 +277,7 @@ class HybridRAGPipeline:
     
     def search(self, query: str, department: str = None, top_k: int = 50) -> List[Dict[str, Any]]:
         """Perform hybrid search with dense and sparse retrieval."""
-        if not self.chunk_texts or self.faiss_index.ntotal == 0:
+        if not self.chunk_texts:
             return []
         
         # Dense search (FAISS)

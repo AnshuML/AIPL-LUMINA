@@ -288,7 +288,7 @@ LANGUAGES = {
 }
 
 def ensure_sample_data():
-    """Ensure the app has sample data for demonstration"""
+    """Ensure the app has sample data for demonstration - only if no documents exist"""
     try:
         db = next(get_db())
         try:
@@ -296,8 +296,11 @@ def ensure_sample_data():
             doc_count = db.query(Document).count()
             chunk_count = db.query(DocumentChunk).count()
             
-            if doc_count == 0 or chunk_count == 0:
-                # Create sample HR document
+            # Only create sample data if absolutely no documents exist
+            if doc_count == 0 and chunk_count == 0:
+                print("No documents found, creating minimal sample data...")
+                
+                # Create a minimal sample document
                 sample_doc = Document(
                     filename="sample_hr_policies.pdf",
                     original_filename="sample_hr_policies.pdf",
@@ -314,15 +317,11 @@ def ensure_sample_data():
                 db.commit()
                 db.refresh(sample_doc)
                 
-                # Create sample chunks with HR policies
+                # Create minimal sample chunks
                 sample_chunks = [
-                    "ATTENDANCE POLICY: All employees must arrive between 9:00 AM and 9:30 AM. Late arrivals after 9:30 AM will be marked as half-day. No grace period is allowed.",
-                    "LEAVE POLICY: Employees are entitled to 12 casual leaves, 12 sick leaves, and 12 earned leaves per year. Leave applications must be submitted at least 2 days in advance.",
-                    "SHORT LEAVE: Employees can take 2 short leaves per month, provided they complete at least 7 hours of work on that day.",
-                    "HOLIDAY POLICY: All Sundays and declared holidays are off days. Employees working on holidays will get compensatory leave.",
-                    "OUTDOOR DUTY: OD requests must be logged in the system and approved by the reporting manager before leaving the office.",
-                    "REGULARIZATION: Attendance regularization requests must be submitted within 3 days of absence with proper justification.",
-                    "WORK FROM HOME: WFH requests must be approved by the manager and logged in the system. Maximum 2 WFH days per week allowed."
+                    "WELCOME TO HR CHATBOT: This is a sample document. Please upload your actual HR documents through the admin panel to get accurate answers.",
+                    "SAMPLE POLICY: This is placeholder content. Upload real documents to get specific policy information.",
+                    "DOCUMENT UPLOAD: Use the admin panel to upload your company's actual HR policies, procedures, and documents for accurate responses."
                 ]
                 
                 for i, chunk_text in enumerate(sample_chunks):
@@ -356,11 +355,14 @@ def ensure_sample_data():
                         "upload_date": datetime.utcnow().isoformat()
                     }] * len(sample_chunks)
                 )
+            else:
+                print(f"Found {doc_count} documents with {chunk_count} chunks - using existing data")
                 
         finally:
             db.close()
     except Exception as e:
         # If there's an error, just continue - the app should still work
+        print(f"Error in ensure_sample_data: {e}")
         pass
 
 def main():
@@ -469,6 +471,116 @@ def main():
                 st.session_state.language_selected = None
                 st.session_state.messages = []
                 st.rerun()
+            
+            # Document Upload Section
+            st.header("📄 Document Upload")
+            st.markdown("Upload documents to improve chatbot responses:")
+            
+            uploaded_files = st.file_uploader(
+                "Choose PDF files",
+                type=['pdf'],
+                accept_multiple_files=True,
+                help="Upload PDF documents related to your department"
+            )
+            
+            if uploaded_files:
+                if st.button("📤 Upload Documents", use_container_width=True):
+                    with st.spinner("Processing documents..."):
+                        try:
+                            from utils.pdf_processor import process_pdfs
+                            from rag_pipeline import get_rag_pipeline
+                            
+                            # Process each uploaded file
+                            for uploaded_file in uploaded_files:
+                                # Save file temporarily
+                                file_path = f"uploads/{st.session_state.department_selected}/{uploaded_file.name}"
+                                os.makedirs(os.path.dirname(file_path), exist_ok=True)
+                                
+                                with open(file_path, "wb") as f:
+                                    f.write(uploaded_file.getbuffer())
+                                
+                                # Process the PDF
+                                processed_docs = process_pdfs([file_path])
+                                texts = [doc_data["content"] for doc_data in processed_docs]
+                                
+                                if texts:
+                                    # Create document record
+                                    doc = Document(
+                                        filename=uploaded_file.name,
+                                        original_filename=uploaded_file.name,
+                                        department=st.session_state.department_selected,
+                                        file_path=file_path,
+                                        file_size=uploaded_file.size,
+                                        upload_user=st.session_state.user_email,
+                                        upload_date=datetime.utcnow(),
+                                        language=st.session_state.language_selected,
+                                        is_processed=True,
+                                        chunk_count=len(texts)
+                                    )
+                                    
+                                    db = next(get_db())
+                                    try:
+                                        db.add(doc)
+                                        db.commit()
+                                        db.refresh(doc)
+                                        
+                                        # Create document chunks
+                                        for i, text in enumerate(texts):
+                                            chunk = DocumentChunk(
+                                                document_id=doc.id,
+                                                chunk_index=i,
+                                                content=text,
+                                                chunk_metadata={
+                                                    "filename": uploaded_file.name,
+                                                    "department": st.session_state.department_selected,
+                                                    "file_path": file_path,
+                                                    "upload_date": datetime.utcnow().isoformat()
+                                                }
+                                            )
+                                            db.add(chunk)
+                                        
+                                        db.commit()
+                                        
+                                        # Add to RAG pipeline
+                                        rag_pipeline = get_rag_pipeline()
+                                        rag_pipeline.add_documents(
+                                            texts=texts,
+                                            metadata=[{
+                                                "filename": uploaded_file.name,
+                                                "department": st.session_state.department_selected,
+                                                "file_path": file_path,
+                                                "upload_date": datetime.utcnow().isoformat()
+                                            }] * len(texts)
+                                        )
+                                        
+                                    finally:
+                                        db.close()
+                                    
+                                    st.success(f"✅ Uploaded and processed: {uploaded_file.name} ({len(texts)} chunks)")
+                                else:
+                                    st.warning(f"⚠️ No text extracted from: {uploaded_file.name}")
+                            
+                            st.success("🎉 All documents uploaded and processed successfully!")
+                            st.rerun()
+                            
+                        except Exception as e:
+                            st.error(f"❌ Error processing documents: {e}")
+            
+            # Show current documents
+            st.subheader("📚 Current Documents")
+            try:
+                db = next(get_db())
+                try:
+                    docs = db.query(Document).filter(Document.department == st.session_state.department_selected).all()
+                    if docs:
+                        for doc in docs:
+                            st.markdown(f"• **{doc.filename}** ({doc.chunk_count} chunks) - {doc.upload_date.strftime('%Y-%m-%d')}")
+                    else:
+                        st.info("No documents uploaded yet. Upload some documents to get better responses!")
+                finally:
+                    db.close()
+            except Exception as e:
+                st.error(f"Error loading documents: {e}")
 
     # Main chat interface
     if st.session_state.user_authenticated and st.session_state.department_selected and st.session_state.language_selected:

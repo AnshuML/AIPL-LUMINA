@@ -11,6 +11,15 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
+# Set up paths for cloud deployment
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+# Set environment variables for cloud deployment
+os.environ.setdefault('STREAMLIT_SERVER_PORT', '8501')
+os.environ.setdefault('STREAMLIT_SERVER_ADDRESS', '0.0.0.0')
+
 # Import shared configuration
 from shared_config import config
 

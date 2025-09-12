@@ -1,0 +1,94 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #1a1a1a;
+    color: white;
+    margin: 0;
+    padding: 20px;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+h1 {
+    color: #4ade80;
+    border-bottom: 2px solid #4ade80;
+    padding-bottom: 10px;
+    margin-bottom: 30px;
+}
+
+.upload-section {
+    margin-bottom: 30px;
+}
+
+.dropzone {
+    border: 2px dashed #666;
+    padding: 30px;
+    border-radius: 8px;
+    text-align: center;
+    min-height: 150px;
+    transition: border-color 0.3s;
+    cursor: pointer;
+}
+
+.dropzone.active {
+    border-color: #4ade80;
+}
+
+.browse-btn {
+    margin-top: 15px;
+    background-color: #4ade80;
+    color: black;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background 0.3s;
+}
+
+.browse-btn:hover {
+    background-color: #34d399;
+}
+
+.existing-docs {
+    margin-top: 30px;
+}
+
+.file-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid #333;
+    margin-bottom: 5px;
+}
+
+.file-info {
+    display: flex;
+    align-items: center;
+}
+
+.file-icon {
+    background: #4ade80;
+    width: 30px;
+    height: 30px;
+    border-radius: 4px;
+    display: inline-block;
+    margin-right: 10px;
+}
+
+.delete-btn {
+    background-color: #ef4444;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.delete-btn:hover {
+    background-color: #dc2626;
+}

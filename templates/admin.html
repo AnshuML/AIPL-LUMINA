@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Document Management</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Document Management</h1>
+
+        <div class="upload-section">
+            <h2>Upload New Document</h2>
+            <p>Select or drag a PDF file</p>
+            <div class="dropzone" id="dropzone">
+                <p>Drag and drop file here</p>
+                <p>Limit {{ max_size / 1024 / 1024 }}MB per file • PDF only</p>
+                <label for="file-input" class="browse-btn">Browse files</label>
+                <input type="file" id="file-input" accept=".pdf" style="display: none;" />
+            </div>
+        </div>
+
+        <div class="existing-docs">
+            <h2>Existing Documents</h2>
+            {% if files %}
+                {% for file in files %}
+                    <div class="file-item">
+                        <div class="file-info">
+                            <i class="file-icon"></i>
+                            <span>{{ file }}</span>
+                        </div>
+                        <button class="delete-btn" data-filename="{{ file }}">Delete</button>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p>No PDFs uploaded yet.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('dropzone').addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            document.getElementById('dropzone').classList.add('active');
+        });
+
+        document.getElementById('dropzone').addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            document.getElementById('dropzone').classList.remove('active');
+        });
+
+        document.getElementById('dropzone').addEventListener('drop', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            document.getElementById('dropzone').classList.remove('active');
+            handleFileUpload(e.dataTransfer.files);
+        });
+
+        // ✅ NEW: Trigger upload when file is selected
+        document.getElementById('file-input').addEventListener('change', (e) => {
+            handleFileUpload(e.target.files);
+        });
+
+        function handleFileUpload(files) {
+            Array.from(files).forEach(file => {
+                if (file.size > {{ max_size }}) {
+                    alert(`File "${file.name}" exceeds size limit.`);
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append('file', file);
+
+                fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (response.ok) {
+                        location.reload();
+                    } else {
+                        response.json().then(data => alert(data.error));
+                    }
+                });
+            });
+        }
+
+        document.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const filename = btn.dataset.filename;
+                if (confirm(`Delete "${filename}"?`)) {
+                    fetch(`/delete/${filename}`, {
+                        method: 'DELETE'
+                    }).then(response => {
+                        if (response.ok) {
+                            location.reload();
+                        } else {
+                            response.json().then(data => alert(data.error));
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

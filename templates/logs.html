@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logs & Audit - AIPL Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #1a1a1a;
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .sidebar {
+            background-color: #2d2d2d;
+            min-height: 100vh;
+            padding: 0;
+        }
+        .sidebar .nav-link {
+            color: #ffffff;
+            padding: 1rem;
+            border-radius: 0;
+            transition: all 0.3s;
+        }
+        .sidebar .nav-link:hover {
+            background-color: #404040;
+            color: #ffffff;
+        }
+        .sidebar .nav-link.active {
+            background-color: #007bff;
+            color: #ffffff;
+        }
+        .main-content {
+            background-color: #1a1a1a;
+            padding: 2rem;
+        }
+        .card {
+            background-color: #2d2d2d;
+            border: 1px solid #404040;
+            color: #ffffff;
+        }
+        .card-header {
+            background-color: #404040;
+            border-bottom: 1px solid #404040;
+        }
+        .table-dark {
+            --bs-table-bg: #2d2d2d;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            border-color: #007bff;
+        }
+        .btn-primary:hover {
+            background-color: #0056b3;
+            border-color: #0056b3;
+        }
+        .log-entry {
+            background-color: #2d2d2d;
+            border: 1px solid #404040;
+            border-radius: 5px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        .question-text {
+            font-weight: bold;
+            color: #ffffff;
+        }
+        .answer-text {
+            color: #cccccc;
+            margin-top: 0.5rem;
+        }
+        .metadata {
+            font-size: 0.8rem;
+            color: #888888;
+            margin-top: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-3 col-lg-2 d-md-block sidebar">
+                <div class="position-sticky pt-3">
+                    <div class="text-center mb-4">
+                        <h4><i class="fas fa-cogs"></i> Admin Panel</h4>
+                        <small class="text-muted">AIPL Enterprise</small>
+                    </div>
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="/">
+                                <i class="fas fa-tachometer-alt"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/documents">
+                                <i class="fas fa-file-alt"></i> Documents
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="/logs">
+                                <i class="fas fa-list"></i> Logs & Audit
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/analytics">
+                                <i class="fas fa-chart-bar"></i> Analytics
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/users">
+                                <i class="fas fa-users"></i> User Management
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/settings">
+                                <i class="fas fa-cog"></i> Settings
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- Main content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 main-content">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">Logs & Audit</h1>
+                    <div class="btn-toolbar mb-2 mb-md-0">
+                        <div class="btn-group me-2">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="exportLogs('csv')">
+                                <i class="fas fa-download"></i> Export CSV
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="exportLogs('pdf')">
+                                <i class="fas fa-file-pdf"></i> Export PDF
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Filters</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <label for="startDate" class="form-label">Start Date</label>
+                                <input type="date" class="form-control" id="startDate">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="endDate" class="form-label">End Date</label>
+                                <input type="date" class="form-control" id="endDate">
+                            </div>
+                            <div class="col-md-2">
+                                <label for="departmentFilter" class="form-label">Department</label>
+                                <select class="form-select" id="departmentFilter">
+                                    <option value="">All</option>
+                                    <option value="HR">HR</option>
+                                    <option value="IT">IT</option>
+                                    <option value="SALES">SALES</option>
+                                    <option value="MARKETING">MARKETING</option>
+                                    <option value="ACCOUNTS">ACCOUNTS</option>
+                                    <option value="FACTORY">FACTORY</option>
+                                    <option value="CO-ORDINATION">CO-ORDINATION</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label for="confidenceFilter" class="form-label">Confidence</label>
+                                <select class="form-select" id="confidenceFilter">
+                                    <option value="">All</option>
+                                    <option value="high">High</option>
+                                    <option value="medium">Medium</option>
+                                    <option value="low">Low</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label for="modelFilter" class="form-label">Model</label>
+                                <select class="form-select" id="modelFilter">
+                                    <option value="">All</option>
+                                    <option value="gpt-4">GPT-4</option>
+                                    <option value="gpt-3.5-turbo">GPT-3.5</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <label for="userEmailFilter" class="form-label">User Email</label>
+                                <input type="text" class="form-control" id="userEmailFilter" placeholder="Search by email...">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="questionFilter" class="form-label">Question Text</label>
+                                <input type="text" class="form-control" id="questionFilter" placeholder="Search in questions...">
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <button class="btn btn-primary" onclick="applyFilters()">
+                                    <i class="fas fa-search"></i> Apply Filters
+                                </button>
+                                <button class="btn btn-outline-secondary ms-2" onclick="clearFilters()">
+                                    <i class="fas fa-times"></i> Clear
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Logs Table -->
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">Query Logs</h5>
+                        <div>
+                            <span class="badge bg-info" id="totalCount">0</span> total entries
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-dark table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Timestamp</th>
+                                        <th>User</th>
+                                        <th>Department</th>
+                                        <th>Question</th>
+                                        <th>Confidence</th>
+                                        <th>Model</th>
+                                        <th>Response Time</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="logsTable">
+                                    <!-- Data will be loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- Pagination -->
+                        <nav aria-label="Logs pagination">
+                            <ul class="pagination justify-content-center" id="pagination">
+                                <!-- Pagination will be generated here -->
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Log Detail Modal -->
+    <div class="modal fade" id="logDetailModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content" style="background-color: #2d2d2d; color: #ffffff;">
+                <div class="modal-header">
+                    <h5 class="modal-title">Log Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="logDetailContent">
+                    <!-- Log details will be loaded here -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentPage = 1;
+        const pageSize = 20;
+        let totalPages = 1;
+
+        // Load logs
+        async function loadLogs(page = 1) {
+            try {
+                const params = new URLSearchParams({
+                    skip: (page - 1) * pageSize,
+                    limit: pageSize
+                });
+
+                // Add filters
+                const startDate = document.getElementById('startDate').value;
+                const endDate = document.getElementById('endDate').value;
+                const department = document.getElementById('departmentFilter').value;
+                const confidence = document.getElementById('confidenceFilter').value;
+                const model = document.getElementById('modelFilter').value;
+                const userEmail = document.getElementById('userEmailFilter').value;
+                const question = document.getElementById('questionFilter').value;
+
+                if (startDate) params.append('start_date', startDate);
+                if (endDate) params.append('end_date', endDate);
+                if (department) params.append('department', department);
+                if (confidence) params.append('confidence', confidence);
+                if (model) params.append('model', model);
+                if (userEmail) params.append('user_email', userEmail);
+                if (question) params.append('question', question);
+
+                const response = await fetch(`/api/logs?${params}`);
+                const data = await response.json();
+                
+                displayLogs(data.logs);
+                updatePagination(data.total_count, page);
+                
+            } catch (error) {
+                console.error('Error loading logs:', error);
+            }
+        }
+
+        // Display logs in table
+        function displayLogs(logs) {
+            const tbody = document.getElementById('logsTable');
+            tbody.innerHTML = '';
+            
+            logs.forEach(log => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${new Date(log.created_at).toLocaleString()}</td>
+                    <td>${log.user_email}</td>
+                    <td><span class="badge bg-primary">${log.department}</span></td>
+                    <td class="question-text">${log.question_text.substring(0, 100)}${log.question_text.length > 100 ? '...' : ''}</td>
+                    <td><span class="badge bg-${log.confidence_score === 'high' ? 'success' : log.confidence_score === 'medium' ? 'warning' : 'danger'}">${log.confidence_score}</span></td>
+                    <td>${log.model_used}</td>
+                    <td>${log.response_time ? log.response_time.toFixed(2) + 's' : '-'}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-info" onclick="viewLogDetail(${log.id})">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Update pagination
+        function updatePagination(totalCount, currentPageNum) {
+            document.getElementById('totalCount').textContent = totalCount;
+            totalPages = Math.ceil(totalCount / pageSize);
+            currentPage = currentPageNum;
+            
+            const pagination = document.getElementById('pagination');
+            pagination.innerHTML = '';
+            
+            // Previous button
+            const prevLi = document.createElement('li');
+            prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+            prevLi.innerHTML = `<a class="page-link" href="#" onclick="loadLogs(${currentPage - 1})">Previous</a>`;
+            pagination.appendChild(prevLi);
+            
+            // Page numbers
+            const startPage = Math.max(1, currentPage - 2);
+            const endPage = Math.min(totalPages, currentPage + 2);
+            
+            for (let i = startPage; i <= endPage; i++) {
+                const li = document.createElement('li');
+                li.className = `page-item ${i === currentPage ? 'active' : ''}`;
+                li.innerHTML = `<a class="page-link" href="#" onclick="loadLogs(${i})">${i}</a>`;
+                pagination.appendChild(li);
+            }
+            
+            // Next button
+            const nextLi = document.createElement('li');
+            nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+            nextLi.innerHTML = `<a class="page-link" href="#" onclick="loadLogs(${currentPage + 1})">Next</a>`;
+            pagination.appendChild(nextLi);
+        }
+
+        // View log detail
+        async function viewLogDetail(logId) {
+            try {
+                // This would fetch individual log details
+                // For now, we'll show a placeholder
+                const modal = new bootstrap.Modal(document.getElementById('logDetailModal'));
+                document.getElementById('logDetailContent').innerHTML = `
+                    <div class="log-entry">
+                        <h6>Question:</h6>
+                        <p class="question-text">Loading...</p>
+                        <h6>Answer:</h6>
+                        <p class="answer-text">Loading...</p>
+                        <div class="metadata">
+                            <small>Log ID: ${logId}</small>
+                        </div>
+                    </div>
+                `;
+                modal.show();
+            } catch (error) {
+                console.error('Error loading log detail:', error);
+            }
+        }
+
+        // Apply filters
+        function applyFilters() {
+            currentPage = 1;
+            loadLogs(1);
+        }
+
+        // Clear filters
+        function clearFilters() {
+            document.getElementById('startDate').value = '';
+            document.getElementById('endDate').value = '';
+            document.getElementById('departmentFilter').value = '';
+            document.getElementById('confidenceFilter').value = '';
+            document.getElementById('modelFilter').value = '';
+            document.getElementById('userEmailFilter').value = '';
+            document.getElementById('questionFilter').value = '';
+            applyFilters();
+        }
+
+        // Export logs
+        async function exportLogs(format) {
+            try {
+                const params = new URLSearchParams();
+                
+                // Add current filters
+                const startDate = document.getElementById('startDate').value;
+                const endDate = document.getElementById('endDate').value;
+                const department = document.getElementById('departmentFilter').value;
+                
+                if (startDate) params.append('start_date', startDate);
+                if (endDate) params.append('end_date', endDate);
+                if (department) params.append('department', department);
+                params.append('format', format);
+                
+                const response = await fetch(`/api/logs/export?${params}`);
+                
+                if (format === 'csv') {
+                    const data = await response.json();
+                    const blob = new Blob([data.csv_data], { type: 'text/csv' });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'query_logs.csv';
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                } else {
+                    alert('PDF export not implemented yet');
+                }
+                
+            } catch (error) {
+                console.error('Error exporting logs:', error);
+                alert('Error exporting logs');
+            }
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set default date range (last 30 days)
+            const endDate = new Date();
+            const startDate = new Date();
+            startDate.setDate(startDate.getDate() - 30);
+            
+            document.getElementById('endDate').value = endDate.toISOString().split('T')[0];
+            document.getElementById('startDate').value = startDate.toISOString().split('T')[0];
+            
+            loadLogs(1);
+        });
+    </script>
+</body>
+</html>

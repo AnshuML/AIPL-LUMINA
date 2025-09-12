@@ -742,31 +742,49 @@ def main():
                         try:
                             from rag_pipeline import get_rag_pipeline
                             from utils.pdf_processor import process_pdfs
+                            from models import DocumentChunk
                             
                             # Process the PDF
-                            texts = process_pdfs([file_path])
+                            processed_docs = process_pdfs([file_path])
+                            texts = [doc_data["content"] for doc_data in processed_docs]
                             
-                            # Add to RAG pipeline
-                            rag_pipeline = get_rag_pipeline()
-                            rag_pipeline.add_documents(
-                                texts=texts,
-                                metadata=[{
-                                    "filename": uploaded_file.name,
-                                    "department": selected_department,
-                                    "file_path": file_path,
-                                    "upload_date": datetime.now().isoformat()
-                                }] * len(texts)
-                            )
-                            
-                            # Update document as processed
+                            # Create document chunks in database
                             db = next(get_db())
                             try:
                                 db_doc = db.query(Document).filter(Document.id == new_document.id).first()
                                 if db_doc:
+                                    # Create chunks in database
+                                    for i, text in enumerate(texts):
+                                        chunk = DocumentChunk(
+                                            document_id=db_doc.id,
+                                            chunk_index=i,
+                                            content=text,
+                                            chunk_metadata={
+                                                "filename": uploaded_file.name,
+                                                "department": selected_department,
+                                                "file_path": file_path,
+                                                "upload_date": datetime.now().isoformat()
+                                            }
+                                        )
+                                        db.add(chunk)
+                                    
+                                    # Update document as processed
                                     db_doc.is_processed = True
                                     db_doc.chunk_count = len(texts)
                                     db_doc.last_indexed = datetime.now()
                                     db.commit()
+                                    
+                                    # Add to RAG pipeline
+                                    rag_pipeline = get_rag_pipeline()
+                                    rag_pipeline.add_documents(
+                                        texts=texts,
+                                        metadata=[{
+                                            "filename": uploaded_file.name,
+                                            "department": selected_department,
+                                            "file_path": file_path,
+                                            "upload_date": datetime.now().isoformat()
+                                        }] * len(texts)
+                                    )
                             finally:
                                 db.close()
                             
@@ -807,6 +825,7 @@ def main():
             try:
                 from rag_pipeline import get_rag_pipeline
                 from utils.pdf_processor import process_pdfs
+                from models import DocumentChunk
                 
                 db = next(get_db())
                 try:
@@ -819,7 +838,23 @@ def main():
                         for doc in unprocessed_docs:
                             try:
                                 # Process the PDF
-                                texts = process_pdfs([doc.file_path])
+                                processed_docs = process_pdfs([doc.file_path])
+                                texts = [doc_data["content"] for doc_data in processed_docs]
+                                
+                                # Create document chunks in database
+                                for i, text in enumerate(texts):
+                                    chunk = DocumentChunk(
+                                        document_id=doc.id,
+                                        chunk_index=i,
+                                        content=text,
+                                        chunk_metadata={
+                                            "filename": doc.original_filename,
+                                            "department": doc.department,
+                                            "file_path": doc.file_path,
+                                            "upload_date": doc.upload_date.isoformat()
+                                        }
+                                    )
+                                    db.add(chunk)
                                 
                                 # Add to RAG pipeline
                                 rag_pipeline.add_documents(

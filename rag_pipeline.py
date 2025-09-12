@@ -21,10 +21,17 @@ logger = logging.getLogger(__name__)
 class HybridRAGPipeline:
     def __init__(self, config: Dict[str, Any]):
         self.config = config
-        self.embedding_model = OpenAIEmbeddings(
-            model=config.get("embedding_model", "text-embedding-3-large"),
-            openai_api_key=os.getenv("OPENAI_API_KEY")
-        )
+        
+        # Check if OpenAI API key is available
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            logger.warning("OpenAI API key not found. RAG pipeline will be limited to text search only.")
+            self.embedding_model = None
+        else:
+            self.embedding_model = OpenAIEmbeddings(
+                model=config.get("embedding_model", "text-embedding-3-large"),
+                openai_api_key=api_key
+            )
         
         # Initialize cross-encoder for re-ranking
         self.reranker = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')
@@ -112,18 +119,24 @@ class HybridRAGPipeline:
             return
         
         # Create embeddings
-        logger.info(f"Creating embeddings for {len(all_texts)} chunks...")
-        embeddings = self.embedding_model.embed_documents(all_texts)
-        embeddings = np.array(embeddings).astype('float32')
-        
-        # Create FAISS index
-        if len(embeddings) > 0:
-            dimension = embeddings.shape[1]
-            self.faiss_index = faiss.IndexFlatIP(dimension)  # Inner product for cosine similarity
-            faiss.normalize_L2(embeddings)  # Normalize for cosine similarity
-            self.faiss_index.add(embeddings)
+        if self.embedding_model:
+            logger.info(f"Creating embeddings for {len(all_texts)} chunks...")
+            embeddings = self.embedding_model.embed_documents(all_texts)
+            embeddings = np.array(embeddings).astype('float32')
+            
+            # Create FAISS index
+            if len(embeddings) > 0:
+                dimension = embeddings.shape[1]
+                self.faiss_index = faiss.IndexFlatIP(dimension)  # Inner product for cosine similarity
+                faiss.normalize_L2(embeddings)  # Normalize for cosine similarity
+                self.faiss_index.add(embeddings)
+            else:
+                # Create empty index
+                dimension = 1536  # OpenAI embedding dimension
+                self.faiss_index = faiss.IndexFlatIP(dimension)
         else:
-            # Create empty index
+            # No embedding model available, create empty index
+            logger.info("No embedding model available, creating empty FAISS index")
             dimension = 1536  # OpenAI embedding dimension
             self.faiss_index = faiss.IndexFlatIP(dimension)
         
@@ -181,16 +194,22 @@ class HybridRAGPipeline:
                 meta["chunk_index"] = i
         
         # Create embeddings
-        embeddings = self.embedding_model.embed_documents(texts)
-        embeddings = np.array(embeddings).astype('float32')
-        faiss.normalize_L2(embeddings)
-        
-        # Add to FAISS index
-        if self.faiss_index is None or self.faiss_index.ntotal == 0:
-            # First document - create new index
-            dimension = embeddings.shape[1]
-            self.faiss_index = faiss.IndexFlatIP(dimension)
-        self.faiss_index.add(embeddings)
+        if self.embedding_model:
+            embeddings = self.embedding_model.embed_documents(texts)
+            embeddings = np.array(embeddings).astype('float32')
+            faiss.normalize_L2(embeddings)
+            
+            # Add to FAISS index
+            if self.faiss_index is None or self.faiss_index.ntotal == 0:
+                # First document - create new index
+                dimension = embeddings.shape[1]
+                self.faiss_index = faiss.IndexFlatIP(dimension)
+            self.faiss_index.add(embeddings)
+        else:
+            # No embedding model available, create empty index if needed
+            if self.faiss_index is None:
+                dimension = 1536  # OpenAI embedding dimension
+                self.faiss_index = faiss.IndexFlatIP(dimension)
         
         # Add to BM25 index
         self.chunk_texts.extend(texts)
@@ -222,16 +241,22 @@ class HybridRAGPipeline:
         } for chunk in chunks]
         
         # Create embeddings
-        embeddings = self.embedding_model.embed_documents(texts)
-        embeddings = np.array(embeddings).astype('float32')
-        faiss.normalize_L2(embeddings)
-        
-        # Add to FAISS index
-        if self.faiss_index.ntotal == 0:
-            # First document - create new index
-            dimension = embeddings.shape[1]
-            self.faiss_index = faiss.IndexFlatIP(dimension)
-        self.faiss_index.add(embeddings)
+        if self.embedding_model:
+            embeddings = self.embedding_model.embed_documents(texts)
+            embeddings = np.array(embeddings).astype('float32')
+            faiss.normalize_L2(embeddings)
+            
+            # Add to FAISS index
+            if self.faiss_index.ntotal == 0:
+                # First document - create new index
+                dimension = embeddings.shape[1]
+                self.faiss_index = faiss.IndexFlatIP(dimension)
+            self.faiss_index.add(embeddings)
+        else:
+            # No embedding model available, create empty index if needed
+            if self.faiss_index.ntotal == 0:
+                dimension = 1536  # OpenAI embedding dimension
+                self.faiss_index = faiss.IndexFlatIP(dimension)
         
         # Add to BM25 index
         tokenized_texts = [text.split() for text in texts]
@@ -256,21 +281,22 @@ class HybridRAGPipeline:
             return []
         
         # Dense search (FAISS)
-        query_embedding = self.embedding_model.embed_query(query)
-        query_embedding = np.array([query_embedding]).astype('float32')
-        faiss.normalize_L2(query_embedding)
-        
-        dense_scores, dense_indices = self.faiss_index.search(query_embedding, top_k)
         dense_results = []
-        for score, idx in zip(dense_scores[0], dense_indices[0]):
-            if idx < len(self.chunk_metadata):
-                dense_results.append({
-                    "chunk_id": self.chunk_metadata[idx]["chunk_id"],
-                    "text": self.chunk_texts[idx],
-                    "metadata": self.chunk_metadata[idx],
-                    "score": float(score),
-                    "type": "dense"
-                })
+        if self.embedding_model and self.faiss_index.ntotal > 0:
+            query_embedding = self.embedding_model.embed_query(query)
+            query_embedding = np.array([query_embedding]).astype('float32')
+            faiss.normalize_L2(query_embedding)
+            
+            dense_scores, dense_indices = self.faiss_index.search(query_embedding, top_k)
+            for score, idx in zip(dense_scores[0], dense_indices[0]):
+                if idx < len(self.chunk_metadata):
+                    dense_results.append({
+                        "chunk_id": self.chunk_metadata[idx]["chunk_id"],
+                        "text": self.chunk_texts[idx],
+                        "metadata": self.chunk_metadata[idx],
+                        "score": float(score),
+                        "type": "dense"
+                    })
         
         # Sparse search (BM25)
         tokenized_query = query.lower().split()
@@ -356,7 +382,7 @@ class HybridRAGPipeline:
         
         # Convert texts to embeddings for MMR
         texts = [result["text"] for result in results]
-        if not texts:
+        if not texts or not self.embedding_model:
             return results
             
         embeddings = self.embedding_model.embed_documents(texts)

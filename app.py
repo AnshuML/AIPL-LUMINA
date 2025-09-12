@@ -645,14 +645,46 @@ def main():
                         try:
                             rag_pipeline = get_rag_pipeline()
                             
+                            # Debug: Print RAG pipeline status
+                            print(f"🔍 RAG Pipeline Status:")
+                            print(f"  - Chunk texts: {len(rag_pipeline.chunk_texts)}")
+                            print(f"  - Chunk metadata: {len(rag_pipeline.chunk_metadata)}")
+                            print(f"  - FAISS index: {rag_pipeline.faiss_index.ntotal if rag_pipeline.faiss_index else 'None'}")
+                            print(f"  - BM25 index: {len(rag_pipeline.chunk_texts) if rag_pipeline.bm25_index else 'None'}")
+                            
+                            # Test search before getting context
+                            test_results = rag_pipeline.search(prompt, st.session_state.department_selected, 5)
+                            print(f"  - Test search results: {len(test_results)}")
+                            
+                            # If no search results, try to rebuild RAG pipeline
+                            if not test_results and len(rag_pipeline.chunk_texts) == 0:
+                                print("🔄 No search results and empty chunks, rebuilding RAG pipeline...")
+                                # Force rebuild by clearing indices
+                                if os.path.exists("index/faiss_index"):
+                                    os.remove("index/faiss_index")
+                                if os.path.exists("index/bm25.pkl"):
+                                    os.remove("index/bm25.pkl")
+                                # Reinitialize RAG pipeline
+                                import rag_pipeline
+                                rag_pipeline.pipeline = None
+                                rag_pipeline = get_rag_pipeline()
+                                print(f"  - Rebuilt RAG pipeline with {len(rag_pipeline.chunk_texts)} chunks")
+                            
                             # Get context for the query
                             context_chunks, context_text = rag_pipeline.get_context_for_llm(
                                 query=prompt,
                                 department=st.session_state.department_selected,
                                 max_tokens=4000
                             )
+                            
+                            print(f"  - Context chunks found: {len(context_chunks)}")
+                            print(f"  - Context text length: {len(context_text)}")
+                            
                         except Exception as e:
                             st.error(f"Error initializing RAG pipeline: {e}")
+                            print(f"❌ RAG Pipeline Error: {e}")
+                            import traceback
+                            traceback.print_exc()
                             context_chunks = []
                             context_text = ""
                         

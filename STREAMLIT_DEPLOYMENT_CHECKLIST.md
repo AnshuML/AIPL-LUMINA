@@ -10,6 +10,7 @@
 
 ### 2. Required Files Present
 - [x] `app.py` - Main chat application
+- [x] `streamlit_app.py` - Streamlit Cloud entry point
 - [x] `admin_app.py` - Admin panel
 - [x] `requirements.txt` - Dependencies
 - [x] `.streamlit/config.toml` - Streamlit configuration
@@ -31,7 +32,7 @@ SECRET_KEY = any-random-secret-string-here
 ### Step 2: Configure Repository
 - **Repository**: `AnshuML/AIPL-LUMINA`
 - **Branch**: `main`
-- **Main file path**: `app.py`
+- **Main file path**: `streamlit_app.py`
 
 ### Step 3: Set Environment Variables
 1. Click "Advanced settings"

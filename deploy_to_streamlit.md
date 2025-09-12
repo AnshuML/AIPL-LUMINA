@@ -17,7 +17,7 @@ Visit: https://share.streamlit.io/
 ```
 Repository: AnshuML/AIPL-LUMINA
 Branch: main
-Main file path: app.py
+Main file path: streamlit_app.py
 ```
 
 ### 5. Environment Variables

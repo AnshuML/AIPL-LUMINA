@@ -472,102 +472,8 @@ def main():
                 st.session_state.messages = []
                 st.rerun()
             
-            # Document Upload Section
-            st.header("📄 Document Upload")
-            st.markdown("Upload documents to improve chatbot responses:")
-            
-            uploaded_files = st.file_uploader(
-                "Choose PDF files",
-                type=['pdf'],
-                accept_multiple_files=True,
-                help="Upload PDF documents related to your department"
-            )
-            
-            if uploaded_files:
-                if st.button("📤 Upload Documents", use_container_width=True):
-                    with st.spinner("Processing documents..."):
-                        try:
-                            from utils.pdf_processor import process_pdfs
-                            from rag_pipeline import get_rag_pipeline
-                            
-                            # Process each uploaded file
-                            for uploaded_file in uploaded_files:
-                                # Save file temporarily
-                                file_path = f"uploads/{st.session_state.department_selected}/{uploaded_file.name}"
-                                os.makedirs(os.path.dirname(file_path), exist_ok=True)
-                                
-                                with open(file_path, "wb") as f:
-                                    f.write(uploaded_file.getbuffer())
-                                
-                                # Process the PDF
-                                processed_docs = process_pdfs([file_path])
-                                texts = [doc_data["content"] for doc_data in processed_docs]
-                                
-                                if texts:
-                                    # Create document record
-                                    doc = Document(
-                                        filename=uploaded_file.name,
-                                        original_filename=uploaded_file.name,
-                                        department=st.session_state.department_selected,
-                                        file_path=file_path,
-                                        file_size=uploaded_file.size,
-                                        upload_user=st.session_state.user_email,
-                                        upload_date=datetime.utcnow(),
-                                        language=st.session_state.language_selected,
-                                        is_processed=True,
-                                        chunk_count=len(texts)
-                                    )
-                                    
-                                    db = next(get_db())
-                                    try:
-                                        db.add(doc)
-                                        db.commit()
-                                        db.refresh(doc)
-                                        
-                                        # Create document chunks
-                                        for i, text in enumerate(texts):
-                                            chunk = DocumentChunk(
-                                                document_id=doc.id,
-                                                chunk_index=i,
-                                                content=text,
-                                                chunk_metadata={
-                                                    "filename": uploaded_file.name,
-                                                    "department": st.session_state.department_selected,
-                                                    "file_path": file_path,
-                                                    "upload_date": datetime.utcnow().isoformat()
-                                                }
-                                            )
-                                            db.add(chunk)
-                                        
-                                        db.commit()
-                                        
-                                        # Add to RAG pipeline
-                                        rag_pipeline = get_rag_pipeline()
-                                        rag_pipeline.add_documents(
-                                            texts=texts,
-                                            metadata=[{
-                                                "filename": uploaded_file.name,
-                                                "department": st.session_state.department_selected,
-                                                "file_path": file_path,
-                                                "upload_date": datetime.utcnow().isoformat()
-                                            }] * len(texts)
-                                        )
-                                        
-                                    finally:
-                                        db.close()
-                                    
-                                    st.success(f"✅ Uploaded and processed: {uploaded_file.name} ({len(texts)} chunks)")
-                                else:
-                                    st.warning(f"⚠️ No text extracted from: {uploaded_file.name}")
-                            
-                            st.success("🎉 All documents uploaded and processed successfully!")
-                            st.rerun()
-                            
-                        except Exception as e:
-                            st.error(f"❌ Error processing documents: {e}")
-            
-            # Show current documents
-            st.subheader("📚 Current Documents")
+            # Show current documents (read-only)
+            st.subheader("📚 Available Documents")
             try:
                 db = next(get_db())
                 try:
@@ -576,7 +482,7 @@ def main():
                         for doc in docs:
                             st.markdown(f"• **{doc.filename}** ({doc.chunk_count} chunks) - {doc.upload_date.strftime('%Y-%m-%d')}")
                     else:
-                        st.info("No documents uploaded yet. Upload some documents to get better responses!")
+                        st.info("No documents available yet. Contact admin to upload documents for your department.")
                 finally:
                     db.close()
             except Exception as e:

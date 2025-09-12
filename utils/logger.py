@@ -3,6 +3,7 @@ Comprehensive logging utility for AIPL Chatbot
 Captures all user activities, queries, and system events
 """
 
+import os
 import logging
 import json
 from datetime import datetime
@@ -18,13 +19,23 @@ class ActivityLogger:
     
     def setup_logging(self):
         """Setup file and console logging"""
+        # Create logs directory if it doesn't exist
+        os.makedirs('logs', exist_ok=True)
+        
+        # Setup handlers
+        handlers = [logging.StreamHandler()]
+        
+        # Only add file handler if logs directory is writable
+        try:
+            handlers.append(logging.FileHandler('logs/activity.log'))
+        except (OSError, PermissionError):
+            # If we can't write to logs directory, just use console logging
+            pass
+        
         logging.basicConfig(
             level=logging.INFO,
             format='%(asctime)s - %(levelname)s - %(message)s',
-            handlers=[
-                logging.FileHandler('logs/activity.log'),
-                logging.StreamHandler()
-            ]
+            handlers=handlers
         )
         self.logger = logging.getLogger(__name__)
     

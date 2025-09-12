@@ -35,7 +35,7 @@ def render_markdown(text):
 
 # Set page config
 st.set_page_config(
-    page_title="Welcome To AIPL LUMINA", 
+    page_title="Welcome To AIPL Lumina", 
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -338,6 +338,14 @@ def ensure_sample_data():
                         # Force rebuild RAG pipeline
                         rag_pipeline = get_rag_pipeline()
                         print(f"Successfully loaded {len(all_texts)} chunks from {len(processed_docs)} documents")
+                        
+                        # Test search to verify it's working
+                        test_results = rag_pipeline.search("leave policy", "HR", 1)
+                        print(f"Test search results: {len(test_results)}")
+                        if test_results:
+                            print("✅ RAG pipeline is working correctly")
+                        else:
+                            print("❌ RAG pipeline search failed")
                     else:
                         print("No chunks found in existing documents")
                 else:

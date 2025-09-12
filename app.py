@@ -11,11 +11,17 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
+# Import shared configuration
+from shared_config import config
+
 # Import our enhanced modules
 from rag_pipeline import get_rag_pipeline
 from utils.llm_handler import llm_handler
-from models import get_db, Query, User, Document, DocumentChunk
+from models import get_db, Query, User, Document, DocumentChunk, init_database
 from sqlalchemy.orm import Session
+
+# Initialize database
+init_database()
 
 # Import logger - works in both local and cloud environments
 try:

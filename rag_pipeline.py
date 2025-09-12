@@ -520,12 +520,7 @@ def get_rag_pipeline() -> HybridRAGPipeline:
     """Get or create the global RAG pipeline instance."""
     global pipeline
     if pipeline is None:
-        config = {
-            "embedding_model": "text-embedding-3-large",
-            "chunk_size": 400,
-            "chunk_overlap": 80,
-            "faiss_path": "index/faiss_index",
-            "bm25_path": "index/bm25.pkl"
-        }
-        pipeline = HybridRAGPipeline(config)
+        from shared_config import config
+        rag_config = config.get_rag_config()
+        pipeline = HybridRAGPipeline(rag_config)
     return pipeline

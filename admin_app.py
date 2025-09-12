@@ -14,22 +14,32 @@ from datetime import datetime
 # Load environment variables
 load_dotenv()
 
+# Import shared configuration
+from shared_config import config
+from shared_data_manager import shared_data_manager
+
 # Import our modules
 try:
-    from models import get_db, User, Document, Query, AdminAction, SupportTicket
+    from models import get_db, User, Document, Query, AdminAction, SupportTicket, init_database
     from sqlalchemy.orm import Session
     from sqlalchemy import func, desc, and_
     
-    # Conditional logger import - only on local development
-    if not os.path.exists('/mount/src'):
+    # Initialize database
+    init_database()
+    
+    # Import logger - works in both local and cloud environments
+    try:
         from utils.logger import activity_logger
-    else:
-        # Create a dummy logger for Streamlit Cloud
-        class DummyLogger:
-            def log_user_login(self, *args, **kwargs): pass
-            def log_query(self, *args, **kwargs): pass
-            def log_admin_action(self, *args, **kwargs): pass
-        activity_logger = DummyLogger()
+    except ImportError:
+        # Fallback logger for any import issues
+        class FallbackLogger:
+            def log_user_login(self, *args, **kwargs): 
+                print(f"LOG: User login - {args}, {kwargs}")
+            def log_query(self, *args, **kwargs): 
+                print(f"LOG: Query - {args}, {kwargs}")
+            def log_admin_action(self, *args, **kwargs): 
+                print(f"LOG: Admin action - {args}, {kwargs}")
+        activity_logger = FallbackLogger()
     
     DB_AVAILABLE = True
 except Exception as e:
@@ -1259,30 +1269,30 @@ def main():
         with col1:
             st.subheader("📊 Quick Stats")
             try:
-                db = next(get_db())
-                try:
-                    # Total users
-                    total_users = db.query(User).count()
-                    st.metric("👥 Total Users", total_users)
-                    
-                    # Active users (logged in last 7 days)
-                    week_ago = datetime.utcnow() - timedelta(days=7)
-                    active_users = db.query(User).filter(User.last_login >= week_ago).count()
-                    st.metric("🟢 Active Users (7 days)", active_users)
-                    
-                    # Total queries
-                    total_queries = db.query(Query).count()
-                    st.metric("💬 Total Queries", total_queries)
-                    
-                    # Average response time
-                    avg_response_time = db.query(func.avg(Query.response_time)).scalar()
-                    if avg_response_time:
-                        st.metric("⏱️ Avg Response Time", f"{avg_response_time:.2f}s")
-                    else:
-                        st.metric("⏱️ Avg Response Time", "N/A")
-                        
-                finally:
-                    db.close()
+                # Get stats from shared data manager
+                user_stats = shared_data_manager.get_user_stats()
+                query_stats = shared_data_manager.get_query_stats()
+                document_stats = shared_data_manager.get_document_stats()
+                
+                # Display metrics
+                st.metric("👥 Total Users", user_stats.get("total_users", 0))
+                st.metric("🟢 Active Users (7 days)", user_stats.get("active_users", 0))
+                st.metric("💬 Total Queries", query_stats.get("total_queries", 0))
+                st.metric("📄 Documents", document_stats.get("total_documents", 0))
+                
+                # Show connection status
+                st.subheader("🔗 System Status")
+                health = shared_data_manager.get_system_health()
+                
+                db_status = "✅ Healthy" if "healthy" in health.get("database", "") else f"❌ {health.get('database', 'Unknown')}"
+                st.metric("🗄️ Database", db_status)
+                
+                rag_status = "✅ Healthy" if "healthy" in health.get("rag_pipeline", "") else f"❌ {health.get('rag_pipeline', 'Unknown')}"
+                st.metric("🤖 RAG Pipeline", rag_status)
+                
+                api_status = "✅ Healthy" if "healthy" in health.get("openai_api", "") else f"❌ {health.get('openai_api', 'Unknown')}"
+                st.metric("🔑 OpenAI API", api_status)
+                
             except Exception as e:
                 st.error(f"Error loading stats: {e}")
         

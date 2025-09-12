@@ -142,7 +142,7 @@ class HybridRAGPipeline:
         
         # Create BM25 index
         if all_texts:
-            tokenized_texts = [text.split() for text in all_texts]
+            tokenized_texts = [text.lower().split() for text in all_texts]
             self.bm25_index = BM25Okapi(tokenized_texts)
         else:
             self.bm25_index = BM25Okapi([])

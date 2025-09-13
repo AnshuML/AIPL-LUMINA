@@ -23,6 +23,9 @@ if os.path.exists('/mount/src'):
     # Disable file logging on cloud
     os.environ.setdefault('DISABLE_FILE_LOGGING', 'true')
     print("🌐 Running on Streamlit Cloud - Version 2.1")
+    print(f"🌐 Database URL: sqlite:///hr_chatbot.db")
+    print(f"🌐 Working directory: {os.getcwd()}")
+    print(f"🌐 Database file exists: {os.path.exists('hr_chatbot.db')}")
 
 # Import shared configuration
 from shared_config import config
@@ -518,6 +521,9 @@ def main():
                     # Log user authentication
                     try:
                         print(f"🔐 Logging user login: {email}")
+                        db = next(get_db())
+                        user_count_before = db.query(User).count()
+                        print(f"🔐 Database check - Users before: {user_count_before}")
                         user = activity_logger.log_user_login(
                             email=email,
                             department="Pending Selection",
@@ -526,7 +532,10 @@ def main():
                         if user:
                             print(f"✅ User login logged successfully - User ID: {user.id}")
                             st.session_state.user_id = user.id
-                        else:
+                            user_count_after = db.query(User).count()
+                            print(f"🔐 Database check - Users after: {user_count_after}")
+                        db.close()
+                        if not user:
                             print(f"❌ Failed to log user login")
                     except Exception as e:
                         # Logging failed, but don't break the authentication process
@@ -662,8 +671,17 @@ def main():
                             print(f"  - BM25 available: {BM25_AVAILABLE}")
                             print(f"  - CrossEncoder available: {CROSS_ENCODER_AVAILABLE}")
                             
+                            # Check database documents
+                            db = next(get_db())
+                            total_docs = db.query(Document).count()
+                            processed_docs = db.query(Document).filter(Document.is_processed == True).count()
+                            total_chunks = db.query(DocumentChunk).count()
+                            print(f"  - Database: {total_docs} docs, {processed_docs} processed, {total_chunks} chunks")
+                            db.close()
+                            
                             # Also show in UI for debugging
                             st.info(f"🔍 Debug: {len(rag_pipeline.chunk_texts)} chunks loaded, FAISS: {rag_pipeline.faiss_index.ntotal if rag_pipeline.faiss_index else 'None'}")
+                            st.info(f"📊 Database: {total_docs} docs, {processed_docs} processed, {total_chunks} chunks")
                             
                             # Test search before getting context
                             print(f"🔍 Testing search for: '{prompt}' in department: {st.session_state.department_selected}")

@@ -4,8 +4,28 @@ import numpy as np
 from typing import List, Dict, Any, Tuple, Optional
 from datetime import datetime
 import faiss
-from rank_bm25 import BM25Okapi
-from sentence_transformers import CrossEncoder
+try:
+    from rank_bm25 import BM25Okapi
+    BM25_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"BM25 not available: {e}")
+    BM25Okapi = None
+    BM25_AVAILABLE = False
+try:
+    from sentence_transformers import CrossEncoder
+    CROSS_ENCODER_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"CrossEncoder not available: {e}")
+    CrossEncoder = None
+    CROSS_ENCODER_AVAILABLE = False
+
+# Also check if sentence_transformers is available at all
+try:
+    import sentence_transformers
+    SENTENCE_TRANSFORMERS_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"sentence_transformers not available: {e}")
+    SENTENCE_TRANSFORMERS_AVAILABLE = False
 import openai
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings
@@ -34,11 +54,15 @@ class HybridRAGPipeline:
             )
         
         # Initialize cross-encoder for re-ranking with device handling
-        try:
-            self.reranker = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')
-        except Exception as e:
-            logger.warning(f"Failed to load cross-encoder: {e}")
-            # Fallback to a simpler re-ranker or disable re-ranking
+        if CROSS_ENCODER_AVAILABLE:
+            try:
+                self.reranker = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')
+                logger.info("CrossEncoder loaded successfully")
+            except Exception as e:
+                logger.warning(f"Failed to load cross-encoder: {e}")
+                self.reranker = None
+        else:
+            logger.warning("CrossEncoder not available, disabling re-ranking")
             self.reranker = None
         
         # Initialize text splitter
@@ -174,13 +198,16 @@ class HybridRAGPipeline:
         
         # Create BM25 index
         try:
-            if all_texts:
+            if BM25_AVAILABLE and all_texts:
                 tokenized_texts = [text.lower().split() for text in all_texts]
                 self.bm25_index = BM25Okapi(tokenized_texts)
                 logger.info(f"Created BM25 index with {len(all_texts)} documents")
             else:
+                if not BM25_AVAILABLE:
+                    logger.warning("BM25 not available, using dummy index")
+                else:
+                    logger.warning("No texts available, using dummy BM25 index")
                 self.bm25_index = BM25Okapi([["dummy"]])  # BM25 can't handle empty corpus
-                logger.warning("No texts available, using dummy BM25 index")
         except Exception as e:
             logger.error(f"Error creating BM25 index: {e}")
             self.bm25_index = BM25Okapi([["dummy"]])
@@ -358,19 +385,27 @@ class HybridRAGPipeline:
         expanded_query = tokenized_query + [word for word in tokenized_query if len(word) > 3]
         
         sparse_results = []
-        if len(self.chunk_texts) > 0 and self.bm25_index is not None:
-            bm25_scores = self.bm25_index.get_scores(expanded_query)
-            sparse_indices = sorted(range(len(bm25_scores)), key=lambda i: bm25_scores[i], reverse=True)[:search_top_k]
-            
-            for idx in sparse_indices:
-                if bm25_scores[idx] > 0.1:  # Filter low scores
-                    sparse_results.append({
-                        "chunk_id": self.chunk_metadata[idx]["chunk_id"],
-                        "text": self.chunk_texts[idx],
-                        "metadata": self.chunk_metadata[idx],
-                        "score": float(bm25_scores[idx]),
-                        "type": "sparse"
-                    })
+        if BM25_AVAILABLE and len(self.chunk_texts) > 0 and self.bm25_index is not None:
+            try:
+                bm25_scores = self.bm25_index.get_scores(expanded_query)
+                sparse_indices = sorted(range(len(bm25_scores)), key=lambda i: bm25_scores[i], reverse=True)[:search_top_k]
+            except Exception as e:
+                logger.error(f"Error in BM25 search: {e}")
+                sparse_indices = []
+        else:
+            if not BM25_AVAILABLE:
+                logger.warning("BM25 not available, skipping keyword search")
+            sparse_indices = []
+        
+        for idx in sparse_indices:
+            if BM25_AVAILABLE and 'bm25_scores' in locals() and bm25_scores[idx] > 0.1:  # Filter low scores
+                sparse_results.append({
+                    "chunk_id": self.chunk_metadata[idx]["chunk_id"],
+                    "text": self.chunk_texts[idx],
+                    "metadata": self.chunk_metadata[idx],
+                    "score": float(bm25_scores[idx]),
+                    "type": "sparse"
+                })
         
         # Combine and deduplicate results with better scoring
         combined_results = self._merge_results(dense_results, sparse_results)

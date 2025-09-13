@@ -1,19 +1,13 @@
 [server]
-port = 8501
-address = "0.0.0.0"
 headless = true
-enableCORS = false
-enableXsrfProtection = false
+port = 8501
+address = "localhost"
 
 [browser]
 gatherUsageStats = false
 
 [theme]
-primaryColor = "#1e3c72"
-backgroundColor = "#0e1117"
-secondaryBackgroundColor = "#1a1a1a"
-textColor = "#e2e8f0"
-font = "sans serif"
-
-[logger]
-level = "info"
+primaryColor = "#667eea"
+backgroundColor = "#1a1a1a"
+secondaryBackgroundColor = "#2c3e50"
+textColor = "#ffffff"

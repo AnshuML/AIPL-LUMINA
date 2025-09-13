@@ -84,13 +84,20 @@ class ActivityLogger:
                     db.add(user)
                     db.commit()
                     db.refresh(user)
-                    self.logger.info(f"New user created: {email}")
+                    if self.logger:
+                        self.logger.info(f"New user created: {email}")
+                    else:
+                        print(f"🌐 New user created: {email}")
                 else:
                     # Update last login
                     user.last_login = datetime.utcnow()
                     user.department = department
                     user.preferred_language = language
                     db.commit()
+                    if self.logger:
+                        self.logger.info(f"User login updated: {email}")
+                    else:
+                        print(f"🌐 User login updated: {email}")
                 
                 # Log to file (only if logger is available)
                 if self.logger:

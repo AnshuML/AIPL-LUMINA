@@ -681,7 +681,8 @@ def main():
         try:
             db = next(get_db())
             try:
-                recent_queries = db.query(Query).join(User, Query.user_id == User.id).order_by(desc(Query.created_at)).limit(5).all()
+                # Get recent queries with user information
+                recent_queries = db.query(Query, User).join(User, Query.user_id == User.id).order_by(desc(Query.created_at)).limit(5).all()
                 
                 if recent_queries:
                     for query, user in recent_queries:
@@ -1072,7 +1073,7 @@ def main():
             try:
                 db = next(get_db())
                 try:
-                    # Join Query with User to get user email
+                    # Build query with filters
                     query = db.query(Query, User).join(User, Query.user_id == User.id)
                     
                     # Apply department filter
@@ -1082,8 +1083,8 @@ def main():
                     # Apply date filter
                     query = query.filter(func.date(Query.created_at) == date_filter)
                     
-                    # Join with User table
-                    queries = query.join(User, Query.user_id == User.id).order_by(desc(Query.created_at)).limit(20).all()
+                    # Execute query
+                    queries = query.order_by(desc(Query.created_at)).limit(20).all()
                     
                     if queries:
                         for query, user in queries:

@@ -18,8 +18,8 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 # Cloud deployment optimizations
 if os.path.exists('/mount/src'):
     # Streamlit Cloud environment
-os.environ.setdefault('STREAMLIT_SERVER_PORT', '8501')
-os.environ.setdefault('STREAMLIT_SERVER_ADDRESS', '0.0.0.0')
+    os.environ.setdefault('STREAMLIT_SERVER_PORT', '8501')
+    os.environ.setdefault('STREAMLIT_SERVER_ADDRESS', '0.0.0.0')
     # Disable file logging on cloud
     os.environ.setdefault('DISABLE_FILE_LOGGING', 'true')
     print("🌐 Running on Streamlit Cloud - Version 2.1")

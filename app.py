@@ -345,6 +345,13 @@ def ensure_sample_data():
             doc_count = db.query(Document).count()
             if doc_count > 0:
                 print(f"✅ Found {doc_count} existing documents from admin panel")
+                # Force RAG pipeline rebuild to ensure latest data is loaded
+                try:
+                    from rag_pipeline import get_rag_pipeline
+                    rag_pipeline = get_rag_pipeline()
+                    print(f"🔄 RAG pipeline loaded with {len(rag_pipeline.chunk_texts)} chunks")
+                except Exception as e:
+                    print(f"⚠️ Error loading RAG pipeline: {e}")
             else:
                 print("📋 No documents found - please upload documents via admin panel")
                 print("💡 Admin panel: https://your-app-name.streamlit.app/admin")

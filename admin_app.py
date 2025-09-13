@@ -842,10 +842,16 @@ def main():
             )
         with col2:
             if st.button("🔄 Refresh", use_container_width=True):
+                # Clear any cached data
+                if hasattr(st.session_state, 'admin_data'):
+                    del st.session_state.admin_data
                 st.rerun()
         
         # Add reprocess button
         if st.button("🔄 Reprocess All Documents", use_container_width=True):
+            # Clear any cached data
+            if hasattr(st.session_state, 'admin_data'):
+                del st.session_state.admin_data
             try:
                 from rag_pipeline import get_rag_pipeline
                 from utils.pdf_processor import process_pdfs
@@ -924,6 +930,13 @@ def main():
                     st.markdown(f"**📊 Total Documents: {len(documents)}**")
                     if filter_department != "All":
                         st.markdown(f"**🏢 Department: {filter_department}**")
+                    
+                    # Debug info
+                    with st.expander("🔍 Debug Info", expanded=False):
+                        st.write("**Database Status:**")
+                        for doc in documents:
+                            st.write(f"- {doc.original_filename}: Processed={doc.is_processed}, Chunks={doc.chunk_count}")
+                    
                     st.markdown("---")
                     
                     for doc in documents:

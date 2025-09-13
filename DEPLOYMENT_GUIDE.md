@@ -40,7 +40,7 @@
    - ✅ `.streamlit/config.toml` (Streamlit configuration)
    - ✅ `.gitignore` (excludes unnecessary files)
 
-### Step 2: Deploy to Streamlit Cloud
+### Step 2: Deploy Main Chat App
 1. **Go to:** https://share.streamlit.io/
 2. **Sign in** with your GitHub account
 3. **Click "New app"**
@@ -52,6 +52,18 @@
    - `OPENAI_API_KEY`: Your OpenAI API key
    - `SECRET_KEY`: Any random secret string
 6. **Click "Deploy!"**
+
+### Step 3: Deploy Admin Panel (Separate)
+1. **Go to:** https://share.streamlit.io/
+2. **Click "New app"** again
+3. **Configure:**
+   - **Repository:** `AnshuML/AIPL-LUMINA` (same repo)
+   - **Branch:** `main`
+   - **Main file path:** `admin_app.py`
+4. **Set Environment Variables:**
+   - `OPENAI_API_KEY`: Your OpenAI API key
+   - `SECRET_KEY`: Any random secret string
+5. **Click "Deploy!"**
 
 ## 🌐 Cloud Features
 
@@ -100,11 +112,12 @@
 ### Main Chat Application
 - **URL:** `https://your-app-name.streamlit.app/`
 - **Features:** User authentication, department selection, multi-language chat
+- **Deploy:** Use `app.py` as main file
 
-### Admin Panel (Integrated)
-- **URL:** `https://your-app-name.streamlit.app/?admin=true`
-- **Access:** Click "🔧 Admin Panel" button in main app sidebar
+### Admin Panel (Separate)
+- **URL:** `https://your-admin-app-name.streamlit.app/`
 - **Features:** Analytics, user management, system monitoring, document upload
+- **Deploy:** Use `admin_app.py` as main file (separate deployment)
 
 ## 🎉 Success!
 

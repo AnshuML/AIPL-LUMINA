@@ -61,9 +61,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Add URL parameter handling for admin panel
-query_params = st.query_params
-is_admin = query_params.get("admin", "false").lower() == "true"
+# Remove admin panel integration for security
 
 # Initialize session state FIRST
 if "messages" not in st.session_state:
@@ -487,21 +485,7 @@ def ensure_sample_data():
         traceback.print_exc()
         pass
 
-def show_admin_panel():
-    """Show admin panel functionality"""
-    try:
-        # Import admin functionality
-        from admin_app import main as admin_main
-        admin_main()
-    except Exception as e:
-        st.error(f"Error loading admin panel: {e}")
-        st.info("Please ensure all admin dependencies are installed.")
-
 def main():
-    # Check if admin panel is requested
-    if is_admin:
-        show_admin_panel()
-        return
     
     # Debug RAG pipeline status
     debug_rag_pipeline()
@@ -520,11 +504,6 @@ def main():
     # Sidebar for authentication and settings
     with st.sidebar:
         st.header("🔐 Authentication")
-        
-        # Admin panel link
-        if st.button("🔧 Admin Panel", use_container_width=True):
-            st.query_params.admin = "true"
-            st.rerun()
         
         if not st.session_state.user_authenticated:
             st.markdown("**Please authenticate to continue**")

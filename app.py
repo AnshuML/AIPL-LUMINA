@@ -694,9 +694,25 @@ def main():
                                 print(f"  - No search results found!")
                                 st.warning("⚠️ No relevant documents found - using general knowledge")
                             
-                            # If no search results, try to rebuild RAG pipeline
-                            if not test_results or len(rag_pipeline.chunk_texts) < 100:
-                                print("🔄 Low chunk count or no search results, rebuilding RAG pipeline...")
+                            # FORCE REBUILD: Always rebuild on web if chunk count is low
+                            if len(rag_pipeline.chunk_texts) < 150:
+                                print("🔄 FORCE REBUILD: Low chunk count detected, forcing complete rebuild...")
+                                # Force rebuild by clearing indices
+                                if os.path.exists("index/faiss_index"):
+                                    os.remove("index/faiss_index")
+                                if os.path.exists("index/bm25.pkl"):
+                                    os.remove("index/bm25.pkl")
+                                # Reinitialize RAG pipeline
+                                import rag_pipeline
+                                rag_pipeline.pipeline = None
+                                rag_pipeline = get_rag_pipeline()
+                                print(f"  - FORCE REBUILT RAG pipeline with {len(rag_pipeline.chunk_texts)} chunks")
+                                
+                                # Retry search with rebuilt pipeline
+                                test_results = rag_pipeline.search(prompt, st.session_state.department_selected, 5)
+                                print(f"  - Retry search results: {len(test_results)}")
+                            elif not test_results:
+                                print("🔄 No search results, rebuilding RAG pipeline...")
                                 # Force rebuild by clearing indices
                                 if os.path.exists("index/faiss_index"):
                                     os.remove("index/faiss_index")

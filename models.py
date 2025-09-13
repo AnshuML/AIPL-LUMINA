@@ -8,17 +8,21 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-# Database configuration
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///hr_chatbot.db")
+# Database configuration - optimized for cloud deployment
+if os.path.exists('/mount/src'):
+    # Streamlit Cloud - use in-memory database for better performance
+    DATABASE_URL = "sqlite:///:memory:"
+else:
+    # Local development - use file database
+    DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///hr_chatbot.db")
 
-# For cloud deployment, use in-memory database if file database fails
 try:
-    engine = create_engine(DATABASE_URL)
+    engine = create_engine(DATABASE_URL, echo=False)
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 except Exception as e:
     print(f"Warning: Could not create database engine with {DATABASE_URL}: {e}")
     # Fallback to in-memory database
-    engine = create_engine("sqlite:///:memory:")
+    engine = create_engine("sqlite:///:memory:", echo=False)
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()

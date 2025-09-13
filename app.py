@@ -15,9 +15,13 @@ load_dotenv()
 import sys
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-# Set environment variables for cloud deployment
-os.environ.setdefault('STREAMLIT_SERVER_PORT', '8501')
-os.environ.setdefault('STREAMLIT_SERVER_ADDRESS', '0.0.0.0')
+# Cloud deployment optimizations
+if os.path.exists('/mount/src'):
+    # Streamlit Cloud environment
+    os.environ.setdefault('STREAMLIT_SERVER_PORT', '8501')
+    os.environ.setdefault('STREAMLIT_SERVER_ADDRESS', '0.0.0.0')
+    # Disable file logging on cloud
+    os.environ.setdefault('DISABLE_FILE_LOGGING', 'true')
 
 # Import shared configuration
 from shared_config import config
@@ -56,6 +60,10 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# Add URL parameter handling for admin panel
+query_params = st.query_params
+is_admin = query_params.get("admin", "false").lower() == "true"
 
 # Initialize session state FIRST
 if "messages" not in st.session_state:
@@ -328,32 +336,18 @@ def ensure_sample_data():
     """Load documents from admin panel uploads and rebuild RAG pipeline"""
     try:
         # Check if we're in cloud environment
-        is_cloud_env = (
-            os.path.exists('/mount/src') or  # Streamlit Cloud
-            os.path.exists('/app') or        # Other cloud platforms
-            not os.path.exists('hr_chatbot.db') or 
-            os.path.getsize('hr_chatbot.db') == 0
-        )
+        is_cloud_env = os.path.exists('/mount/src')  # Streamlit Cloud
         
         if is_cloud_env:
-            print("🌐 Cloud environment detected, creating sample data...")
-            from cloud_sample_data import create_cloud_sample_data
-            if create_cloud_sample_data():
-                print("✅ Sample data created for cloud deployment")
-                # Force RAG pipeline rebuild after creating sample data
-                try:
-                    rag_pipeline = get_rag_pipeline()
-                    # Clear existing indices to force rebuild
-                    if os.path.exists("index/faiss_index"):
-                        os.remove("index/faiss_index")
-                    if os.path.exists("index/bm25.pkl"):
-                        os.remove("index/bm25.pkl")
-                    print("🔄 Cleared indices for rebuild with sample data")
-                except Exception as e:
-                    print(f"⚠️ Error clearing indices: {e}")
+            print("🌐 Streamlit Cloud environment detected")
+            # Check if documents exist from admin panel
+            db = next(get_db())
+            doc_count = db.query(Document).count()
+            if doc_count > 0:
+                print(f"✅ Found {doc_count} existing documents from admin panel")
             else:
-                print("❌ Failed to create sample data")
-                return
+                print("📋 No documents found - please upload documents via admin panel")
+                print("💡 Admin panel: https://your-app-name.streamlit.app/admin")
         
         db = next(get_db())
         try:
@@ -486,7 +480,22 @@ def ensure_sample_data():
         traceback.print_exc()
         pass
 
+def show_admin_panel():
+    """Show admin panel functionality"""
+    try:
+        # Import admin functionality
+        from admin_app import main as admin_main
+        admin_main()
+    except Exception as e:
+        st.error(f"Error loading admin panel: {e}")
+        st.info("Please ensure all admin dependencies are installed.")
+
 def main():
+    # Check if admin panel is requested
+    if is_admin:
+        show_admin_panel()
+        return
+    
     # Debug RAG pipeline status
     debug_rag_pipeline()
     
@@ -504,6 +513,11 @@ def main():
     # Sidebar for authentication and settings
     with st.sidebar:
         st.header("🔐 Authentication")
+        
+        # Admin panel link
+        if st.button("🔧 Admin Panel", use_container_width=True):
+            st.query_params.admin = "true"
+            st.rerun()
         
         if not st.session_state.user_authenticated:
             st.markdown("**Please authenticate to continue**")

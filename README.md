@@ -303,3 +303,4 @@ For technical support or questions:
 ---
 
 **Built with ❤️ for Ajit Industries Pvt. Ltd.**
+#conda activate C:\Users\anshu\Desktop\baatchitt\venv

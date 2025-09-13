@@ -1,27 +1,39 @@
-# Minimal requirements for AIPL Chatbot
+# Core Streamlit and FastAPI
 streamlit>=1.28.0
 fastapi>=0.100.0
 uvicorn[standard]>=0.20.0
+
+# Database
 sqlalchemy>=2.0.0
+
+# OpenAI and LLM
 openai>=1.6.0
-python-dotenv>=1.0.0
-pydantic>=2.0.0
 langchain>=0.0.350
 langchain-openai>=0.0.2
 langchain-community>=0.0.10
+
+# Vector Store and Search
 faiss-cpu>=1.7.0
 rank-bm25>=0.2.2
 sentence-transformers>=2.2.0
-transformers>=4.35.0
-torch>=2.0.0
+
+# Text Processing
 pypdf2>=3.0.0
 python-multipart>=0.0.6
+
+# Authentication
 python-jose[cryptography]>=3.3.0
 passlib[bcrypt]>=1.7.4
+
+# Data Processing
 pandas>=1.5.0
 numpy>=1.21.0
+
+# Visualization
 plotly>=5.0.0
-matplotlib>=3.5.0
+
+# Utilities
+python-dotenv>=1.0.0
+pydantic>=2.0.0
 markdown>=3.4.0
 requests>=2.28.0
-openpyxl>=3.1.0

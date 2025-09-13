@@ -52,6 +52,11 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Add back to main app button
+if st.button("← Back to Main App", use_container_width=True):
+    st.query_params.admin = "false"
+    st.rerun()
+
 # Complete Dark Theme CSS for Admin Panel
 st.markdown("""
 <style>

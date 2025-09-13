@@ -53,7 +53,15 @@ class HybridRAGPipeline:
         self._load_or_create_indices()
     
     def _load_or_create_indices(self):
-        """Load existing indices or create new ones."""
+        """Load existing indices or create new ones - optimized for cloud deployment."""
+        # Check if we're on Streamlit Cloud
+        if os.path.exists('/mount/src'):
+            # On Streamlit Cloud - always create new indices (no persistent storage)
+            logger.info("Streamlit Cloud detected - creating new indices...")
+            self._create_new_indices()
+            return
+        
+        # Local development - try to load existing indices
         faiss_path = self.config.get("faiss_path", "index/faiss_index")
         bm25_path = self.config.get("bm25_path", "index/bm25.pkl")
         
@@ -190,21 +198,29 @@ class HybridRAGPipeline:
         self.chunk_metadata = []
     
     def _save_indices(self):
-        """Save FAISS and BM25 indices to disk."""
+        """Save FAISS and BM25 indices to disk - skip on cloud deployment."""
+        # Skip saving on Streamlit Cloud (no persistent storage)
+        if os.path.exists('/mount/src'):
+            logger.info("Streamlit Cloud detected - skipping index persistence")
+            return
+        
         faiss_path = self.config.get("faiss_path", "index/faiss_index")
         bm25_path = self.config.get("bm25_path", "index/bm25.pkl")
         
-        # Save FAISS index
-        faiss.write_index(self.faiss_index, faiss_path)
-        
-        # Save BM25 index
-        bm25_data = {
-            "bm25": self.bm25_index,
-            "texts": self.chunk_texts,
-            "metadata": self.chunk_metadata
-        }
-        with open(bm25_path, "wb") as f:
-            pickle.dump(bm25_data, f)
+        try:
+            # Save FAISS index
+            faiss.write_index(self.faiss_index, faiss_path)
+            
+            # Save BM25 index
+            bm25_data = {
+                "bm25": self.bm25_index,
+                "texts": self.chunk_texts,
+                "metadata": self.chunk_metadata
+            }
+            with open(bm25_path, "wb") as f:
+                pickle.dump(bm25_data, f)
+        except Exception as e:
+            logger.error(f"Error saving indices: {e}")
     
     def add_documents(self, texts: List[str], metadata: List[Dict[str, Any]]):
         """Add multiple documents directly from texts and metadata."""

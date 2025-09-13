@@ -20,7 +20,7 @@ def create_cloud_sample_data():
         required_depts = ["HR", "IT", "ACCOUNTS", "SALES"]
         missing_depts = [dept for dept in required_depts if dept not in existing_depts]
         
-        if not missing_depts:
+        if not missing_depts and existing_docs > 0:
             print(f"✅ Found documents for all departments ({existing_docs} total), skipping sample data creation")
             return True
         

@@ -18,11 +18,11 @@ class ActivityLogger:
     def __init__(self):
         # Check if we're on Streamlit Cloud
         if os.path.exists('/mount/src'):
-            # On Streamlit Cloud - disable all logging
+            # On Streamlit Cloud - enable database logging only
             self.logger = None
-            print("🌐 Streamlit Cloud detected - logging disabled")
+            print("🌐 Streamlit Cloud detected - database logging enabled, file logging disabled")
         else:
-            # Local development - enable logging
+            # Local development - enable full logging
             self.setup_logging()
     
     def setup_logging(self):
@@ -65,9 +65,8 @@ class ActivityLogger:
     
     def log_user_login(self, email: str, department: str, language: str, ip_address: str = None):
         """Log user login activity"""
-        # Skip logging on Streamlit Cloud
-        if not self.logger:
-            return
+        # Always log to database, even on Streamlit Cloud
+        # Only skip file logging if logger is None
             
         try:
             db = next(get_db())
@@ -93,30 +92,35 @@ class ActivityLogger:
                     user.preferred_language = language
                     db.commit()
                 
-                # Log to file
-                login_data = {
-                    "event": "user_login",
-                    "email": email,
-                    "department": department,
-                    "language": language,
-                    "ip_address": ip_address,
-                    "timestamp": datetime.utcnow().isoformat()
-                }
-                self.logger.info(f"User login: {json.dumps(login_data)}")
+                # Log to file (only if logger is available)
+                if self.logger:
+                    login_data = {
+                        "event": "user_login",
+                        "email": email,
+                        "department": department,
+                        "language": language,
+                        "ip_address": ip_address,
+                        "timestamp": datetime.utcnow().isoformat()
+                    }
+                    self.logger.info(f"User login: {json.dumps(login_data)}")
+                else:
+                    print(f"🌐 User login: {email} - {department} - {language}")
                 
                 return user
             finally:
                 db.close()
         except Exception as e:
-            self.logger.error(f"Error logging user login: {e}")
+            if self.logger:
+                self.logger.error(f"Error logging user login: {e}")
+            else:
+                print(f"❌ Error logging user login: {e}")
             return None
     
     def log_query(self, user_id: int, question: str, answer: str, department: str, 
                   language: str, response_data: Dict[str, Any]):
         """Log user query with complete metadata"""
-        # Skip logging on Streamlit Cloud
-        if not self.logger:
-            return
+        # Always log to database, even on Streamlit Cloud
+        # Only skip file logging if logger is None
             
         try:
             db = next(get_db())
@@ -137,34 +141,39 @@ class ActivityLogger:
                 db.add(query_log)
                 db.commit()
                 
-                # Log to file
-                query_data = {
-                    "event": "user_query",
-                    "user_id": user_id,
-                    "question": question,
-                    "answer_length": len(answer),
-                    "department": department,
-                    "language": language,
-                    "confidence": response_data.get('confidence', 'low'),
-                    "response_time": response_data.get('response_time', 0),
-                    "model_used": response_data.get('model_used', 'gpt-4'),
-                    "timestamp": datetime.utcnow().isoformat()
-                }
-                self.logger.info(f"User query: {json.dumps(query_data)}")
+                # Log to file (only if logger is available)
+                if self.logger:
+                    query_data = {
+                        "event": "user_query",
+                        "user_id": user_id,
+                        "question": question,
+                        "answer_length": len(answer),
+                        "department": department,
+                        "language": language,
+                        "confidence": response_data.get('confidence', 'low'),
+                        "response_time": response_data.get('response_time', 0),
+                        "model_used": response_data.get('model_used', 'gpt-4'),
+                        "timestamp": datetime.utcnow().isoformat()
+                    }
+                    self.logger.info(f"User query: {json.dumps(query_data)}")
+                else:
+                    print(f"🌐 User query: {user_id} - {question[:50]}... - {department}")
                 
                 return query_log
             finally:
                 db.close()
         except Exception as e:
-            self.logger.error(f"Error logging query: {e}")
+            if self.logger:
+                self.logger.error(f"Error logging query: {e}")
+            else:
+                print(f"❌ Error logging query: {e}")
             return None
     
     def log_admin_action(self, admin_email: str, action_type: str, target_type: str = None, 
                         target_id: int = None, details: Dict[str, Any] = None):
         """Log admin actions"""
-        # Skip logging on Streamlit Cloud
-        if not self.logger:
-            return
+        # Always log to database, even on Streamlit Cloud
+        # Only skip file logging if logger is None
             
         try:
             db = next(get_db())
@@ -185,23 +194,29 @@ class ActivityLogger:
                 db.add(admin_action)
                 db.commit()
                 
-                # Log to file
-                action_data = {
-                    "event": "admin_action",
-                    "admin_email": admin_email,
-                    "action_type": action_type,
-                    "target_type": target_type,
-                    "target_id": target_id,
-                    "details": details,
-                    "timestamp": datetime.utcnow().isoformat()
-                }
-                self.logger.info(f"Admin action: {json.dumps(action_data)}")
+                # Log to file (only if logger is available)
+                if self.logger:
+                    action_data = {
+                        "event": "admin_action",
+                        "admin_email": admin_email,
+                        "action_type": action_type,
+                        "target_type": target_type,
+                        "target_id": target_id,
+                        "details": details,
+                        "timestamp": datetime.utcnow().isoformat()
+                    }
+                    self.logger.info(f"Admin action: {json.dumps(action_data)}")
+                else:
+                    print(f"🌐 Admin action: {admin_email} - {action_type}")
                 
                 return admin_action
             finally:
                 db.close()
         except Exception as e:
-            self.logger.error(f"Error logging admin action: {e}")
+            if self.logger:
+                self.logger.error(f"Error logging admin action: {e}")
+            else:
+                print(f"❌ Error logging admin action: {e}")
             return None
     
     def log_system_event(self, event_type: str, message: str, data: Dict[str, Any] = None):
@@ -213,7 +228,10 @@ class ActivityLogger:
             "data": data or {},
             "timestamp": datetime.utcnow().isoformat()
         }
-        self.logger.info(f"System event: {json.dumps(event_data)}")
+        if self.logger:
+            self.logger.info(f"System event: {json.dumps(event_data)}")
+        else:
+            print(f"🌐 System event: {event_type} - {message}")
     
     def get_user_activity_summary(self, days: int = 7) -> Dict[str, Any]:
         """Get user activity summary for the last N days"""
@@ -251,7 +269,10 @@ class ActivityLogger:
             finally:
                 db.close()
         except Exception as e:
-            self.logger.error(f"Error getting activity summary: {e}")
+            if self.logger:
+                self.logger.error(f"Error getting activity summary: {e}")
+            else:
+                print(f"❌ Error getting activity summary: {e}")
             return {}
 
 # Global logger instance

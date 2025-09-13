@@ -13,10 +13,12 @@ if os.path.exists('/mount/src'):
     # Streamlit Cloud - use absolute path for shared database
     DATABASE_URL = "sqlite:////mount/src/aipl-lumina/hr_chatbot.db"
     print(f"🌐 Using absolute database path: {DATABASE_URL}")
+    print(f"🌐 Database file exists: {os.path.exists('/mount/src/aipl-lumina/hr_chatbot.db')}")
 else:
     # Local development - use file database
     DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///hr_chatbot.db")
     print(f"🏠 Using local database: {DATABASE_URL}")
+    print(f"🏠 Database file exists: {os.path.exists('hr_chatbot.db')}")
 
 try:
     engine = create_engine(DATABASE_URL, echo=False)
@@ -35,9 +37,28 @@ def init_database():
         # Create all tables
         Base.metadata.create_all(bind=engine)
         print("✅ Database initialized successfully")
+        print(f"🔗 Database URL: {DATABASE_URL}")
         return True
     except Exception as e:
         print(f"❌ Error initializing database: {e}")
+        return False
+
+def verify_shared_database():
+    """Verify that both apps are using the same database"""
+    try:
+        db = next(get_db())
+        user_count = db.query(User).count()
+        doc_count = db.query(Document).count()
+        query_count = db.query(Query).count()
+        print(f"🔍 Shared Database Status:")
+        print(f"  - Users: {user_count}")
+        print(f"  - Documents: {doc_count}")
+        print(f"  - Queries: {query_count}")
+        print(f"  - Database URL: {DATABASE_URL}")
+        db.close()
+        return True
+    except Exception as e:
+        print(f"❌ Error verifying shared database: {e}")
         return False
 
 class User(Base):

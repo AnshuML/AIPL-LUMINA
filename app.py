@@ -39,6 +39,9 @@ from sqlalchemy.orm import Session
 # Initialize database
 init_database()
 
+# Import verification function
+from models import verify_shared_database
+
 # Verify database connection and data
 def verify_database():
     """Verify database connection and show current data"""
@@ -64,6 +67,7 @@ def verify_database():
 
 # Run verification
 verify_database()
+verify_shared_database()
 
 # Import logger - works in both local and cloud environments
 try:

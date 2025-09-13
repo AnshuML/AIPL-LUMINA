@@ -30,6 +30,9 @@ except ImportError as e:
 # Initialize database
 init_database()
 
+# Import verification function
+from models import verify_shared_database
+
 # Verify database connection and data
 def verify_admin_database():
     """Verify admin database connection and show current data"""
@@ -55,6 +58,7 @@ def verify_admin_database():
 
 # Run verification
 verify_admin_database()
+verify_shared_database()
 
 # Import logger - works in both local and cloud environments
 try:

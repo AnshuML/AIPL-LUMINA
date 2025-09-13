@@ -248,7 +248,6 @@ def main():
                         simple_rag_pipeline._rag_pipeline = None
                         
                         # Remove old index files to force recreation
-                        import os
                         faiss_path = "index/faiss_index"
                         bm25_path = "index/bm25.pkl"
                         

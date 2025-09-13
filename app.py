@@ -18,8 +18,8 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 # Cloud deployment optimizations
 if os.path.exists('/mount/src'):
     # Streamlit Cloud environment
-    os.environ.setdefault('STREAMLIT_SERVER_PORT', '8501')
-    os.environ.setdefault('STREAMLIT_SERVER_ADDRESS', '0.0.0.0')
+os.environ.setdefault('STREAMLIT_SERVER_PORT', '8501')
+os.environ.setdefault('STREAMLIT_SERVER_ADDRESS', '0.0.0.0')
     # Disable file logging on cloud
     os.environ.setdefault('DISABLE_FILE_LOGGING', 'true')
     print("🌐 Running on Streamlit Cloud - Version 2.1")
@@ -904,14 +904,14 @@ def main():
                                 user_id = st.session_state.get('user_id', user.id if 'user' in locals() else None)
                                 print(f"💬 Logging query: {prompt[:50]}... by user {user_id}")
                                 if user_id:
-                                    activity_logger.log_query(
+                                activity_logger.log_query(
                                         user_id=user_id,
-                                        question=prompt,
-                                        answer=response_data['answer'],
-                                        department=st.session_state.department_selected,
-                                        language=st.session_state.language_selected,
-                                        response_data=response_data
-                                    )
+                                    question=prompt,
+                                    answer=response_data['answer'],
+                                    department=st.session_state.department_selected,
+                                    language=st.session_state.language_selected,
+                                    response_data=response_data
+                                )
                                     print(f"✅ Query logged successfully")
                                 else:
                                     print(f"❌ No user_id available for logging")

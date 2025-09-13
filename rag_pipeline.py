@@ -33,8 +33,13 @@ class HybridRAGPipeline:
                 openai_api_key=api_key
             )
         
-        # Initialize cross-encoder for re-ranking
-        self.reranker = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')
+        # Initialize cross-encoder for re-ranking with device handling
+        try:
+            self.reranker = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')
+        except Exception as e:
+            logger.warning(f"Failed to load cross-encoder: {e}")
+            # Fallback to a simpler re-ranker or disable re-ranking
+            self.reranker = None
         
         # Initialize text splitter
         self.text_splitter = RecursiveCharacterTextSplitter(
@@ -411,20 +416,34 @@ class HybridRAGPipeline:
         if not results:
             return []
         
-        # Prepare query-document pairs for re-ranking
-        pairs = [(query, result["text"]) for result in results]
+        # If reranker is not available, return results sorted by original score
+        if self.reranker is None:
+            logger.warning("Reranker not available, using original scores")
+            for result in results:
+                result["rerank_score"] = result.get("score", 0.0)
+            return sorted(results, key=lambda x: x["rerank_score"], reverse=True)[:top_n]
         
-        # Get re-ranking scores
-        rerank_scores = self.reranker.predict(pairs)
-        
-        # Add re-ranking scores to results
-        for i, result in enumerate(results):
-            result["rerank_score"] = float(rerank_scores[i])
-        
-        # Sort by re-ranking score
-        reranked_results = sorted(results, key=lambda x: x["rerank_score"], reverse=True)
-        
-        return reranked_results[:top_n]
+        try:
+            # Prepare query-document pairs for re-ranking
+            pairs = [(query, result["text"]) for result in results]
+            
+            # Get re-ranking scores
+            rerank_scores = self.reranker.predict(pairs)
+            
+            # Add re-ranking scores to results
+            for i, result in enumerate(results):
+                result["rerank_score"] = float(rerank_scores[i])
+            
+            # Sort by re-ranking score
+            reranked_results = sorted(results, key=lambda x: x["rerank_score"], reverse=True)
+            
+            return reranked_results[:top_n]
+        except Exception as e:
+            logger.error(f"Error in reranking: {e}")
+            # Fallback to original scores
+            for result in results:
+                result["rerank_score"] = result.get("score", 0.0)
+            return sorted(results, key=lambda x: x["rerank_score"], reverse=True)[:top_n]
     
     def apply_mmr(self, results: List[Dict], lambda_param: float = 0.7, top_k: int = 10) -> List[Dict]:
         """Apply Maximal Marginal Relevance for diversity."""
@@ -434,16 +453,21 @@ class HybridRAGPipeline:
         # Convert texts to embeddings for MMR
         texts = [result["text"] for result in results]
         if not texts or not self.embedding_model:
-            return results
+            logger.warning("Embedding model not available for MMR, returning original results")
+            return results[:top_k]
             
-        embeddings = self.embedding_model.embed_documents(texts)
-        embeddings = np.array(embeddings)
-        
-        # Normalize embeddings
-        norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
-        # Avoid division by zero
-        norms = np.where(norms == 0, 1, norms)
-        embeddings = embeddings / norms
+        try:
+            embeddings = self.embedding_model.embed_documents(texts)
+            embeddings = np.array(embeddings)
+            
+            # Normalize embeddings
+            norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
+            # Avoid division by zero
+            norms = np.where(norms == 0, 1, norms)
+            embeddings = embeddings / norms
+        except Exception as e:
+            logger.error(f"Error creating embeddings for MMR: {e}")
+            return results[:top_k]
         
         # MMR algorithm
         selected = []

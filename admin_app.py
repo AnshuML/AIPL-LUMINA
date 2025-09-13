@@ -681,16 +681,17 @@ def main():
         try:
             db = next(get_db())
             try:
-                recent_queries = db.query(Query).order_by(desc(Query.created_at)).limit(5).all()
+                recent_queries = db.query(Query).join(User, Query.user_id == User.id).order_by(desc(Query.created_at)).limit(5).all()
                 
                 if recent_queries:
-                    for query in recent_queries:
+                    for query, user in recent_queries:
+                        user_email = user.email if user else "Unknown User"
                         st.markdown(f"""
                         <div class="log-entry">
-                            <strong>👤 User:</strong> {query.user_email} | 
+                            <strong>👤 User:</strong> {user_email} | 
                             <strong>🏢 Department:</strong> {query.department} | 
                             <strong>⏰ Time:</strong> {query.created_at.strftime('%Y-%m-%d %H:%M')}
-                            <br><strong>💬 Query:</strong> {query.query_text[:100]}...
+                            <br><strong>💬 Query:</strong> {query.question_text[:100]}...
                         </div>
                         """, unsafe_allow_html=True)
                 else:
@@ -1081,7 +1082,8 @@ def main():
                     # Apply date filter
                     query = query.filter(func.date(Query.created_at) == date_filter)
                     
-                    queries = query.order_by(desc(Query.created_at)).limit(20).all()
+                    # Join with User table
+                    queries = query.join(User, Query.user_id == User.id).order_by(desc(Query.created_at)).limit(20).all()
                     
                     if queries:
                         for query, user in queries:

@@ -24,8 +24,34 @@ try:
     from sqlalchemy.orm import Session
     from sqlalchemy import func, desc, and_
     
-    # Initialize database
-    init_database()
+# Initialize database
+init_database()
+
+# Verify database connection and data
+def verify_admin_database():
+    """Verify admin database connection and show current data"""
+    try:
+        db = next(get_db())
+        user_count = db.query(User).count()
+        doc_count = db.query(Document).count()
+        processed_docs = db.query(Document).filter(Document.is_processed == True).count()
+        chunk_count = db.query(DocumentChunk).count()
+        query_count = db.query(Query).count()
+        
+        print(f"🔍 Admin Database Verification:")
+        print(f"  - Users: {user_count}")
+        print(f"  - Documents: {doc_count} (processed: {processed_docs})")
+        print(f"  - Chunks: {chunk_count}")
+        print(f"  - Queries: {query_count}")
+        
+        db.close()
+        return True
+    except Exception as e:
+        print(f"❌ Admin database verification failed: {e}")
+        return False
+
+# Run verification
+verify_admin_database()
     
     # Import logger - works in both local and cloud environments
     try:

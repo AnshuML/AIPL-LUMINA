@@ -10,11 +10,13 @@ load_dotenv()
 
 # Database configuration - optimized for cloud deployment
 if os.path.exists('/mount/src'):
-    # Streamlit Cloud - use shared file database for data persistence
-    DATABASE_URL = "sqlite:///hr_chatbot.db"
+    # Streamlit Cloud - use absolute path for shared database
+    DATABASE_URL = "sqlite:////mount/src/aipl-lumina/hr_chatbot.db"
+    print(f"🌐 Using absolute database path: {DATABASE_URL}")
 else:
     # Local development - use file database
     DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///hr_chatbot.db")
+    print(f"🏠 Using local database: {DATABASE_URL}")
 
 try:
     engine = create_engine(DATABASE_URL, echo=False)

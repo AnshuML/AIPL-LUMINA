@@ -316,9 +316,18 @@ def main():
         st.header("📊 Analytics")
         
         # Query statistics
-        st.subheader("📈 Query Statistics")
+        col1, col2 = st.columns([3, 1])
+        
+        with col1:
+            st.subheader("📈 Query Statistics")
+        
+        with col2:
+            if st.button("🔄 Refresh Logs", help="Refresh the analytics data"):
+                st.rerun()
         
         queries = config.get_logs("queries", limit=100)
+        st.write(f"**Debug:** Found {len(queries)} query logs")
+        
         if queries:
             # Department breakdown
             dept_counts = {}
@@ -389,6 +398,35 @@ def main():
                     st.write(f"• {upload['data'].get('filename', 'Unknown')}")
         else:
             st.info("No uploads found")
+        
+        # Recent Queries Detail (always show if there are queries)
+        if queries:
+            st.subheader("📋 Recent Queries Detail")
+            
+            # Show last 10 queries in detail
+            recent_queries = queries[-10:] if len(queries) > 10 else queries
+            
+            for i, query in enumerate(reversed(recent_queries)):
+                with st.expander(f"Query {len(queries) - i}: {query['data'].get('question', 'No question')[:50]}..."):
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        st.write(f"**User:** {query['data'].get('user_name', 'Unknown')} ({query['data'].get('user_email', 'Unknown')})")
+                        st.write(f"**Department:** {query['data'].get('department', 'Unknown')}")
+                        st.write(f"**Language:** {query['data'].get('language', 'Unknown')}")
+                        st.write(f"**Time:** {query['timestamp']}")
+                    
+                    with col2:
+                        st.write(f"**Chunks Used:** {query['data'].get('chunks_used', 0)}")
+                        st.write(f"**Response Time:** {query['data'].get('response_time_seconds', 0):.2f}s")
+                        st.write(f"**Confidence:** {query['data'].get('confidence', 'Unknown')}")
+                        st.write(f"**Sources:** {', '.join(query['data'].get('sources', []))}")
+                    
+                    st.write("**Question:**")
+                    st.write(query['data'].get('question', 'No question'))
+                    
+                    st.write("**Answer:**")
+                    st.write(query['data'].get('answer', 'No answer')[:500] + "..." if len(query['data'].get('answer', '')) > 500 else query['data'].get('answer', 'No answer'))
     
     with tab3:
         st.header("🔧 System Status")

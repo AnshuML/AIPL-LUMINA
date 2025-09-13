@@ -4,6 +4,11 @@ import numpy as np
 from typing import List, Dict, Any, Tuple, Optional
 from datetime import datetime
 import faiss
+
+# Import logger first
+from utils.logger import get_logger
+logger = get_logger(__name__)
+
 try:
     from rank_bm25 import BM25Okapi
     BM25_AVAILABLE = True
@@ -11,6 +16,7 @@ except ImportError as e:
     logger.warning(f"BM25 not available: {e}")
     BM25Okapi = None
     BM25_AVAILABLE = False
+
 try:
     from sentence_transformers import CrossEncoder
     CROSS_ENCODER_AVAILABLE = True

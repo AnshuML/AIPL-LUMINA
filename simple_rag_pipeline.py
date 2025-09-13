@@ -24,12 +24,13 @@ except ImportError as e:
 try:
     from sentence_transformers import CrossEncoder
     CROSS_ENCODER_AVAILABLE = True
+    logger.info("CrossEncoder imported successfully")
 except ImportError as e:
-    logger.warning(f"CrossEncoder not available: {e}")
+    logger.warning(f"CrossEncoder not available (ImportError): {e}")
     CrossEncoder = None
     CROSS_ENCODER_AVAILABLE = False
 except Exception as e:
-    logger.warning(f"CrossEncoder not available: {e}")
+    logger.warning(f"CrossEncoder not available (Exception): {e}")
     CrossEncoder = None
     CROSS_ENCODER_AVAILABLE = False
 
@@ -53,9 +54,18 @@ class SimpleRAGPipeline:
                 openai_api_key=api_key
             )
         
-        # Initialize cross-encoder for re-ranking (disabled for now)
+        # Initialize cross-encoder for re-ranking
         self.reranker = None
-        logger.info("CrossEncoder disabled for stability")
+        if CROSS_ENCODER_AVAILABLE and CrossEncoder is not None:
+            try:
+                # Try to load a lightweight cross-encoder
+                self.reranker = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')
+                logger.info("CrossEncoder loaded successfully")
+            except Exception as e:
+                logger.warning(f"Failed to load CrossEncoder: {e}")
+                self.reranker = None
+        else:
+            logger.info("CrossEncoder not available, using basic search only")
         
         # Initialize text splitter
         self.text_splitter = RecursiveCharacterTextSplitter(
@@ -116,26 +126,34 @@ class SimpleRAGPipeline:
                     chunks = []
                     
                     if doc['filename'].lower().endswith('.pdf'):
-                        from utils.pdf_processor import process_pdfs
-                        chunks = process_pdfs([doc['filepath']], doc['department'])
+                        try:
+                            from utils.pdf_processor import process_pdfs
+                            chunks = process_pdfs([doc['filepath']], doc['department'])
+                        except Exception as e:
+                            logger.error(f"Error processing PDF {doc['filename']}: {e}")
+                            continue
                     elif doc['filename'].lower().endswith('.txt'):
                         # Process text file directly
-                        with open(doc['filepath'], 'r', encoding='utf-8') as f:
-                            text = f.read()
-                        
-                        if text.strip():
-                            # Split text into chunks
-                            text_chunks = self.text_splitter.split_text(text)
-                            for chunk_text in text_chunks:
-                                if chunk_text.strip():
-                                    chunks.append({
-                                        "content": chunk_text,
-                                        "metadata": {
-                                            "source": doc['filepath'],
-                                            "policy_type": "text",
-                                            "department": doc['department']
-                                        }
-                                    })
+                        try:
+                            with open(doc['filepath'], 'r', encoding='utf-8') as f:
+                                text = f.read()
+                            
+                            if text.strip():
+                                # Split text into chunks
+                                text_chunks = self.text_splitter.split_text(text)
+                                for chunk_text in text_chunks:
+                                    if chunk_text.strip():
+                                        chunks.append({
+                                            "content": chunk_text,
+                                            "metadata": {
+                                                "source": doc['filepath'],
+                                                "policy_type": "text",
+                                                "department": doc['department']
+                                            }
+                                        })
+                        except Exception as e:
+                            logger.error(f"Error reading text file {doc['filename']}: {e}")
+                            continue
                     
                     logger.info(f"  Created {len(chunks)} chunks")
                     

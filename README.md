@@ -19,7 +19,25 @@ A modern, intelligent HR chatbot with login system and admin panel for managing 
 pip install -r simple_requirements.txt
 ```
 
-### 2. Run the Application
+### 2. Set Up Environment Variables
+```bash
+# Copy the example environment file
+cp .env.example .env
+
+# Edit .env file and add your OpenAI API key
+# Get your API key from: https://platform.openai.com/api-keys
+```
+
+**Or set environment variable directly:**
+```bash
+# Windows
+$env:OPENAI_API_KEY="your-openai-api-key-here"
+
+# Linux/Mac
+export OPENAI_API_KEY="your-openai-api-key-here"
+```
+
+### 3. Run the Application
 ```bash
 # Run with login system
 python simple_launcher.py chat

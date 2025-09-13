@@ -9,9 +9,25 @@ import subprocess
 import argparse
 from pathlib import Path
 
+# Set OpenAI API key from environment or prompt user
+if not os.getenv("OPENAI_API_KEY"):
+    print("⚠️  OpenAI API key not found in environment variables.")
+    print("Please set OPENAI_API_KEY environment variable or create a .env file.")
+    print("For local development, you can set it in your terminal:")
+    print("Windows: $env:OPENAI_API_KEY='your-api-key-here'")
+    print("Linux/Mac: export OPENAI_API_KEY='your-api-key-here'")
+    sys.exit(1)
+
 def setup_environment():
     """Setup the environment for the simple version"""
     print("🔧 Setting up simple environment...")
+    
+    # Verify OpenAI API key is set
+    if os.getenv("OPENAI_API_KEY"):
+        print("✅ OpenAI API key found")
+    else:
+        print("❌ OpenAI API key not found")
+        return False
     
     # Create necessary directories
     directories = ["documents", "logs", "index"]
@@ -30,12 +46,14 @@ def setup_environment():
 def run_chat():
     """Run the chat application with login"""
     print("🚀 Starting AIPL Lumina HR Chatbot with Login...")
-    subprocess.run([sys.executable, "-m", "streamlit", "run", "main_app.py", "--server.port", "8501"])
+    env = os.environ.copy()
+    subprocess.run([sys.executable, "-m", "streamlit", "run", "main_app.py", "--server.port", "8501"], env=env)
 
 def run_admin():
     """Run the admin panel"""
     print("🚀 Starting Admin Panel...")
-    subprocess.run([sys.executable, "-m", "streamlit", "run", "simple_admin.py", "--server.port", "8502"])
+    env = os.environ.copy()
+    subprocess.run([sys.executable, "-m", "streamlit", "run", "simple_admin.py", "--server.port", "8502"], env=env)
 
 def run_both():
     """Run both applications"""
@@ -43,12 +61,14 @@ def run_both():
     print("📱 Chat App: http://localhost:8501")
     print("⚙️ Admin Panel: http://localhost:8502")
     
+    env = os.environ.copy()
+    
     # Start admin panel in background
-    admin_process = subprocess.Popen([sys.executable, "-m", "streamlit", "run", "simple_admin.py", "--server.port", "8502"])
+    admin_process = subprocess.Popen([sys.executable, "-m", "streamlit", "run", "simple_admin.py", "--server.port", "8502"], env=env)
     
     # Start chat app in foreground
     try:
-        subprocess.run([sys.executable, "-m", "streamlit", "run", "main_app.py", "--server.port", "8501"])
+        subprocess.run([sys.executable, "-m", "streamlit", "run", "main_app.py", "--server.port", "8501"], env=env)
     except KeyboardInterrupt:
         print("\n🛑 Shutting down...")
         admin_process.terminate()

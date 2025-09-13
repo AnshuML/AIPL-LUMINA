@@ -13,7 +13,7 @@ config.setup_directories()
 
 # Page configuration
 st.set_page_config(
-    page_title="AIPL Lumina HR Chatbot",
+    page_title="AIPL Lumina Chatbot",
     page_icon="🤖",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -24,7 +24,7 @@ if os.path.exists('/mount/src'):
     # Streamlit Cloud environment
     os.environ.setdefault('STREAMLIT_SERVER_PORT', '8501')
     os.environ.setdefault('STREAMLIT_SERVER_ADDRESS', '0.0.0.0')
-    print("🌐 Running on Streamlit Cloud - AIPL Lumina HR Chatbot")
+    print("🌐 Running on Streamlit Cloud - AIPL Lumina Chatbot")
     print(f"🌐 Working directory: {os.getcwd()}")
 
 # Custom CSS - Dark Theme
@@ -87,7 +87,7 @@ def show_login_page():
     st.markdown("""
     <div class="main-header">
         <h1>🤖 Welcome To AIPL Lumina</h1>
-        <p>Your intelligent HR assistant for company policies and procedures</p>
+        <p>Your intelligent assistant for company policies and procedures</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -141,7 +141,7 @@ def show_login_page():
                 })
                 
                 # Show success and redirect
-                st.success("✅ Login successful! Redirecting to chat...")
+                st.success("✅ Login successful!...")
                 st.rerun()
         else:
             st.error("❌ Please fill in all required fields")

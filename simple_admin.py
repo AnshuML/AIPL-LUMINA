@@ -322,11 +322,53 @@ def main():
             st.subheader("📈 Query Statistics")
         
         with col2:
-            if st.button("🔄 Refresh Logs", help="Refresh the analytics data"):
-                st.rerun()
+            col2a, col2b = st.columns(2)
+            with col2a:
+                if st.button("🔄 Refresh Logs", help="Refresh the analytics data"):
+                    st.rerun()
+            with col2b:
+                if st.button("📥 Download Logs", help="Download all logs as JSON"):
+                    # Create a comprehensive log export
+                    all_logs = {
+                        "queries": config.get_logs("queries", limit=1000),
+                        "user_logins": config.get_logs("user_logins", limit=1000),
+                        "uploads": config.get_logs("uploads", limit=1000),
+                        "indexing": config.get_logs("indexing", limit=1000),
+                        "export_timestamp": datetime.now().isoformat(),
+                        "total_queries": len(config.get_logs("queries", limit=1000)),
+                        "total_logins": len(config.get_logs("user_logins", limit=1000)),
+                        "total_uploads": len(config.get_logs("uploads", limit=1000))
+                    }
+                    
+                    # Convert to JSON
+                    import json
+                    log_json = json.dumps(all_logs, indent=2, ensure_ascii=False)
+                    
+                    # Create download button
+                    st.download_button(
+                        label="📥 Download Complete Logs",
+                        data=log_json,
+                        file_name=f"aipl_lumina_logs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+                        mime="application/json"
+                    )
         
         queries = config.get_logs("queries", limit=100)
-        st.write(f"**Debug:** Found {len(queries)} query logs")
+        user_logins = config.get_logs("user_logins", limit=50)
+        uploads = config.get_logs("uploads", limit=50)
+        
+        # Show current activity summary
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            st.metric("📊 Total Queries", len(queries))
+        with col2:
+            st.metric("👥 User Logins", len(user_logins))
+        with col3:
+            st.metric("📁 Document Uploads", len(uploads))
+        with col4:
+            st.metric("🔄 Indexing Events", len(config.get_logs("indexing", limit=50)))
+        
+        st.write(f"**Debug:** Found {len(queries)} query logs, {len(user_logins)} login logs, {len(uploads)} upload logs")
         
         if queries:
             # Department breakdown
@@ -398,6 +440,23 @@ def main():
                     st.write(f"• {upload['data'].get('filename', 'Unknown')}")
         else:
             st.info("No uploads found")
+        
+        # Recent Activity Section
+        st.subheader("📋 Recent Activity")
+        
+        # Show recent user logins
+        if user_logins:
+            st.write("**Recent User Logins:**")
+            for login in user_logins[-5:]:
+                data = login['data']
+                st.write(f"• **{data.get('user_name', 'Unknown')}** ({data.get('user_email', 'Unknown')}) - {data.get('department', 'Unknown')} - {login['timestamp'][:19]}")
+        
+        # Show recent uploads
+        if uploads:
+            st.write("**Recent Document Uploads:**")
+            for upload in uploads[-5:]:
+                data = upload['data']
+                st.write(f"• **{data.get('filename', 'Unknown')}** - {data.get('department', 'Unknown')} - {upload['timestamp'][:19]}")
         
         # Recent Queries Detail (always show if there are queries)
         if queries:

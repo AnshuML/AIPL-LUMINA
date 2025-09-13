@@ -6,8 +6,8 @@ from datetime import datetime
 import faiss
 
 # Import logger first
-from utils.logger import get_logger
-logger = get_logger(__name__)
+import logging
+logger = logging.getLogger(__name__)
 
 try:
     from rank_bm25 import BM25Okapi

@@ -22,6 +22,7 @@ if os.path.exists('/mount/src'):
     os.environ.setdefault('STREAMLIT_SERVER_ADDRESS', '0.0.0.0')
     # Disable file logging on cloud
     os.environ.setdefault('DISABLE_FILE_LOGGING', 'true')
+    print("🌐 Running on Streamlit Cloud - Version 2.1")
 
 # Import shared configuration
 from shared_config import config
@@ -660,8 +661,9 @@ def main():
                             print(f"  - FAISS index: {rag_pipeline.faiss_index.ntotal if rag_pipeline.faiss_index else 'None'}")
                             print(f"  - BM25 available: {BM25_AVAILABLE}")
                             print(f"  - CrossEncoder available: {CROSS_ENCODER_AVAILABLE}")
-                            print(f"  - FAISS index: {rag_pipeline.faiss_index.ntotal if rag_pipeline.faiss_index else 'None'}")
-                            print(f"  - BM25 index: {len(rag_pipeline.chunk_texts) if rag_pipeline.bm25_index else 'None'}")
+                            
+                            # Also show in UI for debugging
+                            st.info(f"🔍 Debug: {len(rag_pipeline.chunk_texts)} chunks loaded, FAISS: {rag_pipeline.faiss_index.ntotal if rag_pipeline.faiss_index else 'None'}")
                             
                             # Test search before getting context
                             print(f"🔍 Testing search for: '{prompt}' in department: {st.session_state.department_selected}")
@@ -669,8 +671,10 @@ def main():
                             print(f"  - Test search results: {len(test_results)}")
                             if test_results:
                                 print(f"  - First result: {test_results[0].get('text', 'No text')[:100]}...")
+                                st.success(f"✅ Found {len(test_results)} relevant documents")
                             else:
                                 print(f"  - No search results found!")
+                                st.warning("⚠️ No relevant documents found - using general knowledge")
                             
                             # If no search results, try to rebuild RAG pipeline
                             if not test_results and len(rag_pipeline.chunk_texts) == 0:
@@ -695,6 +699,15 @@ def main():
                             
                             print(f"  - Context chunks found: {len(context_chunks)}")
                             print(f"  - Context text length: {len(context_text)}")
+                            if context_chunks:
+                                print(f"  - First context chunk: {context_chunks[0]['text'][:200]}...")
+                                print(f"  - First chunk score: {context_chunks[0].get('score', 'No score')}")
+                                st.info(f"📄 Using {len(context_chunks)} document chunks for answer")
+                            else:
+                                print(f"  - No context chunks found!")
+                                print(f"  - Available departments in chunks: {set([chunk.get('metadata', {}).get('department', 'Unknown') for chunk in rag_pipeline.chunk_metadata])}")
+                                print(f"  - Searching in department: {st.session_state.department_selected}")
+                                st.error("❌ No document context found - will use general knowledge")
                             
                         except Exception as e:
                             st.error(f"Error initializing RAG pipeline: {e}")

@@ -416,9 +416,14 @@ class HybridRAGPipeline:
         # Combine and deduplicate results with better scoring
         combined_results = self._merge_results(dense_results, sparse_results)
         
-        # Filter by department if specified
+        # Filter by department if specified (with fallback to all departments if no results)
         if department:
-            combined_results = [r for r in combined_results if r["metadata"]["department"] == department]
+            dept_filtered = [r for r in combined_results if r["metadata"]["department"] == department]
+            if dept_filtered:
+                combined_results = dept_filtered
+            else:
+                logger.warning(f"No results found for department '{department}', searching all departments")
+                # Don't filter by department if no results found
         
         # Sort by combined score for better ranking
         combined_results.sort(key=lambda x: x["score"], reverse=True)

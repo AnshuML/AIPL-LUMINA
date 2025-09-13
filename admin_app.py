@@ -20,7 +20,7 @@ from shared_data_manager import shared_data_manager
 
 # Import our modules
 try:
-    from models import get_db, User, Document, Query, AdminAction, SupportTicket, init_database
+    from models import get_db, User, Document, DocumentChunk, Query, AdminAction, SupportTicket, init_database
     from sqlalchemy.orm import Session
     from sqlalchemy import func, desc, and_
 except ImportError as e:

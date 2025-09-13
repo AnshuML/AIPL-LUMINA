@@ -23,7 +23,10 @@ try:
     from models import get_db, User, Document, Query, AdminAction, SupportTicket, init_database
     from sqlalchemy.orm import Session
     from sqlalchemy import func, desc, and_
-    
+except ImportError as e:
+    st.error(f"Error importing modules: {e}")
+    st.stop()
+
 # Initialize database
 init_database()
 
@@ -52,20 +55,20 @@ def verify_admin_database():
 
 # Run verification
 verify_admin_database()
-    
-    # Import logger - works in both local and cloud environments
-    try:
-        from utils.logger import activity_logger
-    except ImportError:
-        # Fallback logger for any import issues
-        class FallbackLogger:
-            def log_user_login(self, *args, **kwargs): 
-                print(f"LOG: User login - {args}, {kwargs}")
-            def log_query(self, *args, **kwargs): 
-                print(f"LOG: Query - {args}, {kwargs}")
-            def log_admin_action(self, *args, **kwargs): 
-                print(f"LOG: Admin action - {args}, {kwargs}")
-        activity_logger = FallbackLogger()
+
+# Import logger - works in both local and cloud environments
+try:
+    from utils.logger import activity_logger
+except ImportError:
+    # Fallback logger for any import issues
+    class FallbackLogger:
+        def log_user_login(self, *args, **kwargs): 
+            print(f"LOG: User login - {args}, {kwargs}")
+        def log_query(self, *args, **kwargs): 
+            print(f"LOG: Query - {args}, {kwargs}")
+        def log_admin_action(self, *args, **kwargs): 
+            print(f"LOG: Admin action - {args}, {kwargs}")
+    activity_logger = FallbackLogger()
     
     DB_AVAILABLE = True
 except Exception as e:

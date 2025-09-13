@@ -10,8 +10,8 @@ load_dotenv()
 
 # Database configuration - optimized for cloud deployment
 if os.path.exists('/mount/src'):
-    # Streamlit Cloud - use in-memory database for better performance
-    DATABASE_URL = "sqlite:///:memory:"
+    # Streamlit Cloud - use shared file database for data persistence
+    DATABASE_URL = "sqlite:///hr_chatbot.db"
 else:
     # Local development - use file database
     DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///hr_chatbot.db")

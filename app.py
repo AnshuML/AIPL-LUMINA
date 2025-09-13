@@ -27,7 +27,7 @@ if os.path.exists('/mount/src'):
 from shared_config import config
 
 # Import our enhanced modules
-from rag_pipeline import get_rag_pipeline
+from rag_pipeline import get_rag_pipeline, BM25_AVAILABLE, CROSS_ENCODER_AVAILABLE
 from utils.llm_handler import llm_handler
 from models import get_db, Query, User, Document, DocumentChunk, init_database
 from sqlalchemy.orm import Session
@@ -517,12 +517,16 @@ def main():
                     # Log user authentication
                     try:
                         print(f"🔐 Logging user login: {email}")
-                        activity_logger.log_user_login(
+                        user = activity_logger.log_user_login(
                             email=email,
                             department="Pending Selection",
                             language="en"
                         )
-                        print(f"✅ User login logged successfully")
+                        if user:
+                            print(f"✅ User login logged successfully - User ID: {user.id}")
+                            st.session_state.user_id = user.id
+                        else:
+                            print(f"❌ Failed to log user login")
                     except Exception as e:
                         # Logging failed, but don't break the authentication process
                         print(f"❌ Warning: Could not log user login: {e}")
@@ -654,11 +658,19 @@ def main():
                             print(f"  - Chunk texts: {len(rag_pipeline.chunk_texts)}")
                             print(f"  - Chunk metadata: {len(rag_pipeline.chunk_metadata)}")
                             print(f"  - FAISS index: {rag_pipeline.faiss_index.ntotal if rag_pipeline.faiss_index else 'None'}")
+                            print(f"  - BM25 available: {BM25_AVAILABLE}")
+                            print(f"  - CrossEncoder available: {CROSS_ENCODER_AVAILABLE}")
+                            print(f"  - FAISS index: {rag_pipeline.faiss_index.ntotal if rag_pipeline.faiss_index else 'None'}")
                             print(f"  - BM25 index: {len(rag_pipeline.chunk_texts) if rag_pipeline.bm25_index else 'None'}")
                             
                             # Test search before getting context
+                            print(f"🔍 Testing search for: '{prompt}' in department: {st.session_state.department_selected}")
                             test_results = rag_pipeline.search(prompt, st.session_state.department_selected, 5)
                             print(f"  - Test search results: {len(test_results)}")
+                            if test_results:
+                                print(f"  - First result: {test_results[0].get('text', 'No text')[:100]}...")
+                            else:
+                                print(f"  - No search results found!")
                             
                             # If no search results, try to rebuild RAG pipeline
                             if not test_results and len(rag_pipeline.chunk_texts) == 0:
@@ -808,16 +820,20 @@ def main():
                             
                             # Use comprehensive logging system
                             try:
-                                print(f"💬 Logging query: {prompt[:50]}... by user {user.id}")
-                                activity_logger.log_query(
-                                    user_id=user.id,
-                                    question=prompt,
-                                    answer=response_data['answer'],
-                                    department=st.session_state.department_selected,
-                                    language=st.session_state.language_selected,
-                                    response_data=response_data
-                                )
-                                print(f"✅ Query logged successfully")
+                                user_id = st.session_state.get('user_id', user.id if 'user' in locals() else None)
+                                print(f"💬 Logging query: {prompt[:50]}... by user {user_id}")
+                                if user_id:
+                                    activity_logger.log_query(
+                                        user_id=user_id,
+                                        question=prompt,
+                                        answer=response_data['answer'],
+                                        department=st.session_state.department_selected,
+                                        language=st.session_state.language_selected,
+                                        response_data=response_data
+                                    )
+                                    print(f"✅ Query logged successfully")
+                                else:
+                                    print(f"❌ No user_id available for logging")
                             except Exception as e:
                                 # Logging failed, but don't break the query process
                                 print(f"❌ Logging error: {e}")

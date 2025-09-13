@@ -68,7 +68,7 @@ class SharedDataManager:
             dept_distribution = {dept: count for dept, count in dept_queries if dept}
             
             # Get confidence distribution
-            confidence_queries = db.query(Query.confidence, func.count(Query.id)).group_by(Query.confidence).all()
+            confidence_queries = db.query(Query.confidence_score, func.count(Query.id)).group_by(Query.confidence_score).all()
             confidence_distribution = {conf: count for conf, count in confidence_queries if conf}
             
             return {
@@ -137,7 +137,7 @@ class SharedDataManager:
                     "answer": query.answer,
                     "department": query.department,
                     "language": query.language,
-                    "confidence": query.confidence,
+                    "confidence": query.confidence_score,
                     "created_at": query.created_at.isoformat(),
                     "response_time": query.response_time
                 }

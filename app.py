@@ -516,14 +516,18 @@ def main():
                     
                     # Log user authentication
                     try:
+                        print(f"🔐 Logging user login: {email}")
                         activity_logger.log_user_login(
                             email=email,
                             department="Pending Selection",
                             language="en"
                         )
+                        print(f"✅ User login logged successfully")
                     except Exception as e:
                         # Logging failed, but don't break the authentication process
-                        print(f"Warning: Could not log user login: {e}")
+                        print(f"❌ Warning: Could not log user login: {e}")
+                        import traceback
+                        traceback.print_exc()
                     
                     st.success("✅ Authenticated successfully!")
                     st.rerun()
@@ -804,6 +808,7 @@ def main():
                             
                             # Use comprehensive logging system
                             try:
+                                print(f"💬 Logging query: {prompt[:50]}... by user {user.id}")
                                 activity_logger.log_query(
                                     user_id=user.id,
                                     question=prompt,
@@ -812,9 +817,12 @@ def main():
                                     language=st.session_state.language_selected,
                                     response_data=response_data
                                 )
+                                print(f"✅ Query logged successfully")
                             except Exception as e:
                                 # Logging failed, but don't break the query process
-                                print(f"⚠️ Logging error: {e}")
+                                print(f"❌ Logging error: {e}")
+                                import traceback
+                                traceback.print_exc()
                         except Exception as e:
                             print(f"⚠️ Database error: {e}")
                             # Try to log to console as fallback

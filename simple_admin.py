@@ -243,12 +243,19 @@ def main():
             if st.button("🔄 Rebuild Index", type="primary", help="Process all documents and rebuild search index"):
                 with st.spinner("🔄 Rebuilding index... This may take a few minutes."):
                     try:
-                        # Import and rebuild RAG pipeline
-                        from simple_rag_pipeline import get_rag_pipeline
-                        
-                        # Clear existing pipeline
+                        # Clear existing pipeline completely
                         import simple_rag_pipeline
                         simple_rag_pipeline._rag_pipeline = None
+                        
+                        # Remove old index files to force recreation
+                        import os
+                        faiss_path = "index/faiss_index"
+                        bm25_path = "index/bm25.pkl"
+                        
+                        if os.path.exists(faiss_path):
+                            os.remove(faiss_path)
+                        if os.path.exists(bm25_path):
+                            os.remove(bm25_path)
                         
                         # Create new pipeline (this will rebuild indices)
                         rag_pipeline = get_rag_pipeline()
@@ -267,6 +274,9 @@ def main():
                             "total_chunks": total_chunks,
                             "timestamp": datetime.now().isoformat()
                         })
+                        
+                        # Force refresh the page to show updated metrics
+                        st.rerun()
                         
                     except Exception as e:
                         st.error(f"❌ Error rebuilding index: {str(e)}")

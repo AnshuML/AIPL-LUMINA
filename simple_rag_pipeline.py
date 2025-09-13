@@ -53,17 +53,9 @@ class SimpleRAGPipeline:
                 openai_api_key=api_key
             )
         
-        # Initialize cross-encoder for re-ranking
-        if CROSS_ENCODER_AVAILABLE and CrossEncoder is not None:
-            try:
-                self.reranker = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')
-                logger.info("CrossEncoder loaded successfully")
-            except Exception as e:
-                logger.warning(f"Failed to load cross-encoder: {e}")
-                self.reranker = None
-        else:
-            logger.warning("CrossEncoder not available, disabling re-ranking")
-            self.reranker = None
+        # Initialize cross-encoder for re-ranking (disabled for now)
+        self.reranker = None
+        logger.info("CrossEncoder disabled for stability")
         
         # Initialize text splitter
         self.text_splitter = RecursiveCharacterTextSplitter(
@@ -84,34 +76,9 @@ class SimpleRAGPipeline:
     
     def _load_or_create_indices(self):
         """Load existing indices or create new ones"""
-        # Check if we're on Streamlit Cloud
-        if os.path.exists('/mount/src'):
-            logger.info("Streamlit Cloud detected - creating new indices...")
-            self._create_new_indices()
-            return
-        
-        # Local development - try to load existing indices
-        faiss_path = self.config.get("faiss_path", "index/faiss_index")
-        bm25_path = self.config.get("bm25_path", "index/bm25.pkl")
-        
-        # Create directories if they don't exist
-        try:
-            os.makedirs(os.path.dirname(faiss_path), exist_ok=True)
-            os.makedirs(os.path.dirname(bm25_path), exist_ok=True)
-        except Exception as e:
-            logger.error(f"Error creating directories: {e}")
-        
-        if os.path.exists(faiss_path) and os.path.exists(bm25_path):
-            try:
-                self._load_indices(faiss_path, bm25_path)
-                logger.info(f"Loaded existing indices with {len(self.chunk_texts)} chunks")
-            except Exception as e:
-                logger.error(f"Error loading indices: {e}")
-                logger.info("Creating new indices...")
-                self._create_new_indices()
-        else:
-            logger.info("No existing indices found, creating new ones...")
-            self._create_new_indices()
+        # Always create new indices to ensure latest documents are processed
+        logger.info("Creating new indices to ensure latest documents are processed...")
+        self._create_new_indices()
     
     def _load_indices(self, faiss_path: str, bm25_path: str):
         """Load existing FAISS and BM25 indices"""

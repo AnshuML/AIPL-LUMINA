@@ -16,9 +16,15 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS
+# Custom CSS for Dark Theme
 st.markdown("""
 <style>
+    /* Dark theme for admin panel */
+    .stApp {
+        background-color: #0e1117;
+        color: #ffffff;
+    }
+    
     .main-header {
         background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
         padding: 2rem;
@@ -27,24 +33,87 @@ st.markdown("""
         text-align: center;
         margin-bottom: 2rem;
     }
+    
     .status-card {
-        background-color: #f8f9fa;
+        background-color: #1e1e1e;
         padding: 1rem;
         border-radius: 10px;
         border-left: 4px solid #007bff;
         margin: 0.5rem 0;
+        color: #ffffff;
     }
+    
     .success-card {
-        background-color: #d4edda;
+        background-color: #1a4d1a;
         border-left-color: #28a745;
+        color: #ffffff;
     }
+    
     .warning-card {
-        background-color: #fff3cd;
+        background-color: #4d3a00;
         border-left-color: #ffc107;
+        color: #ffffff;
     }
+    
     .error-card {
-        background-color: #f8d7da;
+        background-color: #4d1a1a;
         border-left-color: #dc3545;
+        color: #ffffff;
+    }
+    
+    /* Dark theme for file uploader */
+    .uploadedFile {
+        background-color: #1e1e1e;
+        color: #ffffff;
+        border: 2px dashed #666;
+    }
+    
+    /* Dark theme for selectbox */
+    .stSelectbox > div > div {
+        background-color: #1e1e1e;
+        color: #ffffff;
+    }
+    
+    /* Dark theme for buttons */
+    .stButton > button {
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 5px;
+    }
+    
+    .stButton > button:hover {
+        background-color: #0056b3;
+    }
+    
+    /* Dark theme for tabs */
+    .stTabs [data-baseweb="tab-list"] {
+        background-color: #1e1e1e;
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        background-color: #1e1e1e;
+        color: #ffffff;
+    }
+    
+    /* Dark theme for sidebar */
+    .css-1d391kg {
+        background-color: #1e1e1e;
+    }
+    
+    /* Indexing button styling */
+    .index-btn {
+        background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 5px;
+        font-weight: bold;
+        margin: 0.5rem 0;
+    }
+    
+    .index-btn:hover {
+        background: linear-gradient(45deg, #ee5a24, #ff6b6b);
     }
 </style>
 """, unsafe_allow_html=True)
@@ -136,6 +205,72 @@ def main():
                     
                 except Exception as e:
                     st.error(f"❌ Error uploading document: {str(e)}")
+        
+        # Indexing Section
+        st.markdown("---")
+        st.subheader("🔄 Document Indexing")
+        
+        # Show current index status
+        try:
+            from simple_rag_pipeline import get_rag_pipeline
+            rag_pipeline = get_rag_pipeline()
+            total_chunks = len(rag_pipeline.chunk_texts)
+            total_docs = len(config.get_documents())
+            
+            col1, col2, col3 = st.columns([1, 1, 1])
+            
+            with col1:
+                st.metric("📄 Total Documents", total_docs)
+            
+            with col2:
+                st.metric("🔍 Searchable Chunks", total_chunks)
+            
+            with col3:
+                if total_chunks > 0:
+                    st.success("✅ Index Ready")
+                else:
+                    st.warning("⚠️ Index Empty")
+        
+        except Exception as e:
+            st.error(f"❌ Error checking index status: {str(e)}")
+        
+        col1, col2 = st.columns([2, 1])
+        
+        with col1:
+            st.info("📝 After uploading documents, click 'Rebuild Index' to make them searchable in the chatbot.")
+        
+        with col2:
+            if st.button("🔄 Rebuild Index", type="primary", help="Process all documents and rebuild search index"):
+                with st.spinner("🔄 Rebuilding index... This may take a few minutes."):
+                    try:
+                        # Import and rebuild RAG pipeline
+                        from simple_rag_pipeline import get_rag_pipeline
+                        
+                        # Clear existing pipeline
+                        import simple_rag_pipeline
+                        simple_rag_pipeline._rag_pipeline = None
+                        
+                        # Create new pipeline (this will rebuild indices)
+                        rag_pipeline = get_rag_pipeline()
+                        
+                        # Get document count
+                        total_docs = len(config.get_documents())
+                        total_chunks = len(rag_pipeline.chunk_texts)
+                        
+                        st.success(f"✅ Index rebuilt successfully!")
+                        st.info(f"📊 Processed {total_docs} documents into {total_chunks} searchable chunks")
+                        
+                        # Log the indexing activity
+                        config.log_activity("indexing", {
+                            "action": "rebuild_index",
+                            "total_documents": total_docs,
+                            "total_chunks": total_chunks,
+                            "timestamp": datetime.now().isoformat()
+                        })
+                        
+                    except Exception as e:
+                        st.error(f"❌ Error rebuilding index: {str(e)}")
+                        st.error("Please check the console for detailed error information.")
         
         # Document list
         st.subheader("📋 Current Documents")

@@ -25,29 +25,43 @@ def extract_text_from_pdf(pdf_path):
         reader = PyPDF2.PdfReader(f)
         return "\n".join([page.extract_text() or "" for page in reader.pages])
 
-def process_pdfs(pdf_paths):
+def process_pdfs(pdf_paths, department=None):
     all_docs = []
     for path in pdf_paths:
-        text = extract_text_from_pdf(path)
-        chunks = TEXT_SPLITTER.split_text(text)
-        
-        # Add metadata for policy type detection
-        policy_type = "unknown"
-        if "code" in path.lower():
-            policy_type = "code"
-        elif "leave" in path.lower():
-            policy_type = "leave"
-        elif "induction" in path.lower():
-            policy_type = "induction"
-        
-        for chunk in chunks:
-            all_docs.append({
-                "content": chunk,
-                "metadata": {
-                    "source": path,
-                    "policy_type": policy_type
-                }
-            })
+        try:
+            text = extract_text_from_pdf(path)
+            if not text.strip():
+                print(f"Warning: No text extracted from {path}")
+                continue
+                
+            chunks = TEXT_SPLITTER.split_text(text)
+            
+            # Add metadata for policy type detection
+            policy_type = "unknown"
+            if "code" in path.lower():
+                policy_type = "code"
+            elif "leave" in path.lower():
+                policy_type = "leave"
+            elif "induction" in path.lower():
+                policy_type = "induction"
+            elif "attendance" in path.lower():
+                policy_type = "attendance"
+            elif "policy" in path.lower():
+                policy_type = "policy"
+            
+            for chunk in chunks:
+                if chunk.strip():  # Only add non-empty chunks
+                    all_docs.append({
+                        "content": chunk,
+                        "metadata": {
+                            "source": path,
+                            "policy_type": policy_type,
+                            "department": department or "unknown"
+                        }
+                    })
+        except Exception as e:
+            print(f"Error processing {path}: {e}")
+            continue
     return all_docs
     
   

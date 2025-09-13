@@ -145,9 +145,30 @@ class SimpleRAGPipeline:
                 logger.info(f"Processing document: {doc['filename']} (Department: {doc['department']})")
                 
                 try:
-                    # Process PDF and get chunks
-                    from utils.pdf_processor import process_pdfs
-                    chunks = process_pdfs([doc['filename']], doc['department'])
+                    # Process document and get chunks
+                    chunks = []
+                    
+                    if doc['filename'].lower().endswith('.pdf'):
+                        from utils.pdf_processor import process_pdfs
+                        chunks = process_pdfs([doc['filepath']], doc['department'])
+                    elif doc['filename'].lower().endswith('.txt'):
+                        # Process text file directly
+                        with open(doc['filepath'], 'r', encoding='utf-8') as f:
+                            text = f.read()
+                        
+                        if text.strip():
+                            # Split text into chunks
+                            text_chunks = self.text_splitter.split_text(text)
+                            for chunk_text in text_chunks:
+                                if chunk_text.strip():
+                                    chunks.append({
+                                        "content": chunk_text,
+                                        "metadata": {
+                                            "source": doc['filepath'],
+                                            "policy_type": "text",
+                                            "department": doc['department']
+                                        }
+                                    })
                     
                     logger.info(f"  Created {len(chunks)} chunks")
                     

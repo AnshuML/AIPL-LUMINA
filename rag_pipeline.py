@@ -143,6 +143,37 @@ class HybridRAGPipeline:
             logger.info(f"Processed documents: {len(documents)}")
             logger.info(f"Unprocessed documents: {len(all_docs) - len(documents)}")
             
+            # EMERGENCY FIX: If we have unprocessed documents, process them now
+            if len(all_docs) > len(documents):
+                logger.warning("Found unprocessed documents, processing them now...")
+                unprocessed_docs = [doc for doc in all_docs if not doc.is_processed]
+                for doc in unprocessed_docs:
+                    try:
+                        # Process the document
+                        from utils.pdf_processor import process_pdfs
+                        processed_docs = process_pdfs([doc.filename], doc.department)
+                        
+                        # Create chunks in database
+                        for i, chunk_data in enumerate(processed_docs):
+                            chunk = DocumentChunk(
+                                document_id=doc.id,
+                                content=chunk_data["content"],
+                                chunk_index=i,
+                                chunk_metadata=chunk_data.get("metadata", {})
+                            )
+                            db.add(chunk)
+                        
+                        # Mark document as processed
+                        doc.is_processed = True
+                        db.commit()
+                        logger.info(f"Processed document: {doc.filename}")
+                    except Exception as e:
+                        logger.error(f"Error processing document {doc.filename}: {e}")
+                
+                # Reload documents after processing
+                documents = db.query(Document).filter(Document.is_processed == True).all()
+                logger.info(f"After processing: {len(documents)} processed documents")
+            
             if not documents:
                 logger.warning("No processed documents found. Creating empty indices.")
                 self._create_empty_indices()

@@ -677,8 +677,8 @@ def main():
                                 st.warning("⚠️ No relevant documents found - using general knowledge")
                             
                             # If no search results, try to rebuild RAG pipeline
-                            if not test_results and len(rag_pipeline.chunk_texts) == 0:
-                                print("🔄 No search results and empty chunks, rebuilding RAG pipeline...")
+                            if not test_results or len(rag_pipeline.chunk_texts) < 100:
+                                print("🔄 Low chunk count or no search results, rebuilding RAG pipeline...")
                                 # Force rebuild by clearing indices
                                 if os.path.exists("index/faiss_index"):
                                     os.remove("index/faiss_index")
@@ -689,6 +689,10 @@ def main():
                                 rag_pipeline.pipeline = None
                                 rag_pipeline = get_rag_pipeline()
                                 print(f"  - Rebuilt RAG pipeline with {len(rag_pipeline.chunk_texts)} chunks")
+                                
+                                # Retry search with rebuilt pipeline
+                                test_results = rag_pipeline.search(prompt, st.session_state.department_selected, 5)
+                                print(f"  - Retry search results: {len(test_results)}")
                             
                             # Get context for the query
                             context_chunks, context_text = rag_pipeline.get_context_for_llm(

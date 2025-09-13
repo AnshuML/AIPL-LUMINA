@@ -49,11 +49,15 @@ class SimpleConfig:
     def setup_directories(cls):
         """Create necessary directories"""
         for directory in [cls.DOCUMENTS_DIR, cls.LOGS_DIR, cls.INDEX_DIR]:
-            os.makedirs(directory, exist_ok=True)
-            # Create department subdirectories
-            for dept in cls.DEPARTMENTS:
-                dept_dir = os.path.join(directory, dept)
-                os.makedirs(dept_dir, exist_ok=True)
+            try:
+                os.makedirs(directory, exist_ok=True)
+                # Create department subdirectories
+                for dept in cls.DEPARTMENTS:
+                    dept_dir = os.path.join(directory, dept)
+                    os.makedirs(dept_dir, exist_ok=True)
+            except Exception as e:
+                print(f"Warning: Could not create directory {directory}: {e}")
+                # Continue with other directories
     
     @classmethod
     def get_documents(cls, department: str = None) -> List[Dict]:
@@ -91,41 +95,52 @@ class SimpleConfig:
     @classmethod
     def log_activity(cls, activity_type: str, data: Dict):
         """Log activity to JSON file"""
-        log_file = os.path.join(cls.LOGS_DIR, f"{activity_type}.json")
-        
-        # Load existing logs
-        logs = []
-        if os.path.exists(log_file):
-            try:
-                with open(log_file, 'r', encoding='utf-8') as f:
-                    logs = json.load(f)
-            except:
-                logs = []
-        
-        # Add new log entry
-        log_entry = {
-            "timestamp": datetime.now().isoformat(),
-            "data": data
-        }
-        logs.append(log_entry)
-        
-        # Save logs
-        with open(log_file, 'w', encoding='utf-8') as f:
-            json.dump(logs, f, indent=2, ensure_ascii=False)
+        try:
+            # Ensure logs directory exists
+            os.makedirs(cls.LOGS_DIR, exist_ok=True)
+            
+            log_file = os.path.join(cls.LOGS_DIR, f"{activity_type}.json")
+            
+            # Load existing logs
+            logs = []
+            if os.path.exists(log_file):
+                try:
+                    with open(log_file, 'r', encoding='utf-8') as f:
+                        logs = json.load(f)
+                except:
+                    logs = []
+            
+            # Add new log entry
+            log_entry = {
+                "timestamp": datetime.now().isoformat(),
+                "data": data
+            }
+            logs.append(log_entry)
+            
+            # Save logs
+            with open(log_file, 'w', encoding='utf-8') as f:
+                json.dump(logs, f, indent=2, ensure_ascii=False)
+        except Exception as e:
+            print(f"Warning: Could not log activity: {e}")
+            # Continue without logging
     
     @classmethod
     def get_logs(cls, activity_type: str, limit: int = 100) -> List[Dict]:
         """Get activity logs"""
-        log_file = os.path.join(cls.LOGS_DIR, f"{activity_type}.json")
-        
-        if not os.path.exists(log_file):
-            return []
-        
         try:
+            # Ensure logs directory exists
+            os.makedirs(cls.LOGS_DIR, exist_ok=True)
+            
+            log_file = os.path.join(cls.LOGS_DIR, f"{activity_type}.json")
+            
+            if not os.path.exists(log_file):
+                return []
+            
             with open(log_file, 'r', encoding='utf-8') as f:
                 logs = json.load(f)
             return logs[-limit:]  # Return last N entries
-        except:
+        except Exception as e:
+            print(f"Warning: Could not get logs: {e}")
             return []
 
 # Global instance

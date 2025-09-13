@@ -8,6 +8,9 @@ import os
 from datetime import datetime
 from simple_config import config
 
+# Setup directories first
+config.setup_directories()
+
 # Page configuration
 st.set_page_config(
     page_title="AIPL Lumina HR Chatbot",

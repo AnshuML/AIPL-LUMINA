@@ -5,7 +5,6 @@ Simplified HR Chatbot without database dependency
 import os
 import streamlit as st
 import requests
-from markdown import markdown
 from datetime import datetime
 import json
 from typing import Dict, Any

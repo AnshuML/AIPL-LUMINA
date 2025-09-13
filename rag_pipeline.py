@@ -10,7 +10,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 try:
-from rank_bm25 import BM25Okapi
+    from rank_bm25 import BM25Okapi
     BM25_AVAILABLE = True
 except ImportError as e:
     logger.warning(f"BM25 not available: {e}")
@@ -18,7 +18,7 @@ except ImportError as e:
     BM25_AVAILABLE = False
 
 try:
-from sentence_transformers import CrossEncoder
+    from sentence_transformers import CrossEncoder
     CROSS_ENCODER_AVAILABLE = True
 except ImportError as e:
     logger.warning(f"CrossEncoder not available: {e}")
@@ -62,7 +62,7 @@ class HybridRAGPipeline:
         # Initialize cross-encoder for re-ranking with device handling
         if CROSS_ENCODER_AVAILABLE:
             try:
-        self.reranker = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')
+                self.reranker = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')
                 logger.info("CrossEncoder loaded successfully")
             except Exception as e:
                 logger.warning(f"Failed to load cross-encoder: {e}")
@@ -300,17 +300,17 @@ class HybridRAGPipeline:
         bm25_path = self.config.get("bm25_path", "index/bm25.pkl")
         
         try:
-        # Save FAISS index
-        faiss.write_index(self.faiss_index, faiss_path)
-        
-        # Save BM25 index
-        bm25_data = {
-            "bm25": self.bm25_index,
-            "texts": self.chunk_texts,
-            "metadata": self.chunk_metadata
-        }
-        with open(bm25_path, "wb") as f:
-            pickle.dump(bm25_data, f)
+            # Save FAISS index
+            faiss.write_index(self.faiss_index, faiss_path)
+            
+            # Save BM25 index
+            bm25_data = {
+                "bm25": self.bm25_index,
+                "texts": self.chunk_texts,
+                "metadata": self.chunk_metadata
+            }
+            with open(bm25_path, "wb") as f:
+                pickle.dump(bm25_data, f)
         except Exception as e:
             logger.error(f"Error saving indices: {e}")
     
@@ -447,8 +447,8 @@ class HybridRAGPipeline:
         sparse_results = []
         if BM25_AVAILABLE and len(self.chunk_texts) > 0 and self.bm25_index is not None:
             try:
-            bm25_scores = self.bm25_index.get_scores(expanded_query)
-            sparse_indices = sorted(range(len(bm25_scores)), key=lambda i: bm25_scores[i], reverse=True)[:search_top_k]
+                bm25_scores = self.bm25_index.get_scores(expanded_query)
+                sparse_indices = sorted(range(len(bm25_scores)), key=lambda i: bm25_scores[i], reverse=True)[:search_top_k]
             except Exception as e:
                 logger.error(f"Error in BM25 search: {e}")
                 sparse_indices = []
@@ -457,14 +457,14 @@ class HybridRAGPipeline:
                 logger.warning("BM25 not available, skipping keyword search")
             sparse_indices = []
             
-            for idx in sparse_indices:
+        for idx in sparse_indices:
             if BM25_AVAILABLE and 'bm25_scores' in locals() and bm25_scores[idx] > 0.1:  # Filter low scores
-                    sparse_results.append({
-                        "chunk_id": self.chunk_metadata[idx]["chunk_id"],
-                        "text": self.chunk_texts[idx],
-                        "metadata": self.chunk_metadata[idx],
-                        "score": float(bm25_scores[idx]),
-                        "type": "sparse"
+                sparse_results.append({
+                    "chunk_id": self.chunk_metadata[idx]["chunk_id"],
+                    "text": self.chunk_texts[idx],
+                    "metadata": self.chunk_metadata[idx],
+                    "score": float(bm25_scores[idx]),
+                    "type": "sparse"
                     })
         
         # Combine and deduplicate results with better scoring
@@ -524,20 +524,20 @@ class HybridRAGPipeline:
             return sorted(results, key=lambda x: x["rerank_score"], reverse=True)[:top_n]
         
         try:
-        # Prepare query-document pairs for re-ranking
-        pairs = [(query, result["text"]) for result in results]
-        
-        # Get re-ranking scores
-        rerank_scores = self.reranker.predict(pairs)
-        
-        # Add re-ranking scores to results
-        for i, result in enumerate(results):
-            result["rerank_score"] = float(rerank_scores[i])
-        
-        # Sort by re-ranking score
-        reranked_results = sorted(results, key=lambda x: x["rerank_score"], reverse=True)
-        
-        return reranked_results[:top_n]
+            # Prepare query-document pairs for re-ranking
+            pairs = [(query, result["text"]) for result in results]
+            
+            # Get re-ranking scores
+            rerank_scores = self.reranker.predict(pairs)
+            
+            # Add re-ranking scores to results
+            for i, result in enumerate(results):
+                result["rerank_score"] = float(rerank_scores[i])
+            
+            # Sort by re-ranking score
+            reranked_results = sorted(results, key=lambda x: x["rerank_score"], reverse=True)
+            
+            return reranked_results[:top_n]
         except Exception as e:
             logger.error(f"Error in reranking: {e}")
             # Fallback to original scores
@@ -557,14 +557,14 @@ class HybridRAGPipeline:
             return results[:top_k]
             
         try:
-        embeddings = self.embedding_model.embed_documents(texts)
-        embeddings = np.array(embeddings)
-        
-        # Normalize embeddings
-        norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
-        # Avoid division by zero
-        norms = np.where(norms == 0, 1, norms)
-        embeddings = embeddings / norms
+            embeddings = self.embedding_model.embed_documents(texts)
+            embeddings = np.array(embeddings)
+            
+            # Normalize embeddings
+            norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
+            # Avoid division by zero
+            norms = np.where(norms == 0, 1, norms)
+            embeddings = embeddings / norms
         except Exception as e:
             logger.error(f"Error creating embeddings for MMR: {e}")
             return results[:top_k]

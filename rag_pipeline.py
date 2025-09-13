@@ -136,7 +136,12 @@ class HybridRAGPipeline:
         try:
             # Get all documents from database
             db = next(get_db())
+            all_docs = db.query(Document).all()
             documents = db.query(Document).filter(Document.is_processed == True).all()
+            
+            logger.info(f"Total documents in database: {len(all_docs)}")
+            logger.info(f"Processed documents: {len(documents)}")
+            logger.info(f"Unprocessed documents: {len(all_docs) - len(documents)}")
             
             if not documents:
                 logger.warning("No processed documents found. Creating empty indices.")
@@ -155,6 +160,7 @@ class HybridRAGPipeline:
         
         for doc in documents:
             chunks = db.query(DocumentChunk).filter(DocumentChunk.document_id == doc.id).all()
+            logger.info(f"Loading document: {doc.filename} (Department: {doc.department}) - {len(chunks)} chunks")
             for chunk in chunks:
                 all_chunks.append(chunk)
                 all_texts.append(chunk.content)
@@ -221,6 +227,8 @@ class HybridRAGPipeline:
         # Store data
         self.chunk_texts = all_texts
         self.chunk_metadata = all_metadata
+        
+        logger.info(f"RAG Pipeline loaded: {len(all_texts)} chunks from {len(documents)} documents")
         
         # Save indices
         self._save_indices()

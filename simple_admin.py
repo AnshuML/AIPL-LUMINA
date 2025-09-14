@@ -367,7 +367,9 @@ def main():
                     
                     # Convert to JSON
                     import json
-                    log_json = json.dumps(all_logs, indent=2, ensure_ascii=False)
+                    # Sanitize data before JSON conversion
+                    sanitized_logs = config.sanitize_for_json(all_logs)
+                    log_json = json.dumps(sanitized_logs, indent=2, ensure_ascii=False)
                     
                     # Create download button
                     st.download_button(
@@ -640,7 +642,9 @@ def main():
                     export_file = f"logs_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
                     with open(export_file, 'w', encoding='utf-8') as f:
                         import json
-                        json.dump(export_data, f, indent=2, ensure_ascii=False)
+                        # Sanitize data before JSON conversion
+                        sanitized_export_data = config.sanitize_for_json(export_data)
+                        json.dump(sanitized_export_data, f, indent=2, ensure_ascii=False)
                     
                     st.success(f"✅ Logs exported to {export_file}")
                 except Exception as e:

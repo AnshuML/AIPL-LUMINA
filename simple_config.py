@@ -23,6 +23,21 @@ class SimpleConfig:
     LOGS_DIR = "logs"
     INDEX_DIR = "index"
     
+    @staticmethod
+    def sanitize_for_json(obj):
+        """Recursively sanitize data to ensure JSON serialization"""
+        if isinstance(obj, dict):
+            return {key: SimpleConfig.sanitize_for_json(value) for key, value in obj.items()}
+        elif isinstance(obj, list):
+            return [SimpleConfig.sanitize_for_json(item) for item in obj]
+        elif isinstance(obj, (str, int, float, bool, type(None))):
+            return obj
+        elif hasattr(obj, 'isoformat'):  # datetime objects
+            return obj.isoformat()
+        else:
+            # Convert any other object to string
+            return str(obj)
+    
     # Departments
     DEPARTMENTS = [
         "HR", "IT", "SALES", "MARKETING", 
@@ -157,15 +172,18 @@ class SimpleConfig:
             log_dir = os.path.join(base_dir, department)
             log_file = os.path.join(log_dir, f"{activity_type}.json")
             
+            # Sanitize data to ensure JSON serialization
+            sanitized_data = cls.sanitize_for_json(data)
+            
             # Add additional metadata
             log_entry = {
                 "timestamp": datetime.now().isoformat(),
                 "activity_type": activity_type,
                 "department": department,
-                "user_ip": data.get('user_ip', 'unknown'),
-                "session_id": data.get('session_id', 'unknown'),
+                "user_ip": sanitized_data.get('user_ip', 'unknown'),
+                "session_id": sanitized_data.get('session_id', 'unknown'),
                 "platform": "streamlit_cloud" if os.getenv('STREAMLIT_RUNTIME') else "local",
-                "data": data
+                "data": sanitized_data
             }
             
             # Load existing logs
@@ -186,13 +204,16 @@ class SimpleConfig:
             
             # Ensure write permissions
             try:
+                # Sanitize all logs before writing
+                sanitized_logs = [cls.sanitize_for_json(log) for log in logs]
+                
                 # Try to write to rotated log file first
                 with open(rotated_log_file, 'w', encoding='utf-8') as f:
-                    json.dump(logs, f, indent=2, ensure_ascii=False)
+                    json.dump(sanitized_logs, f, indent=2, ensure_ascii=False)
                 
                 # Update latest log file
                 with open(log_file, 'w', encoding='utf-8') as f:
-                    json.dump(logs[-1000:], f, indent=2, ensure_ascii=False)  # Keep last 1000 entries
+                    json.dump(sanitized_logs[-1000:], f, indent=2, ensure_ascii=False)  # Keep last 1000 entries
                 
                 print(f"✅ Successfully logged {activity_type} activity to {log_file}")
                 
@@ -207,7 +228,27 @@ class SimpleConfig:
                 else:
                     print(f"ℹ️ Could not store log due to write restrictions and no session state available")
                     # At least print the log entry for debugging
-                    print(f"📝 Log entry: {json.dumps(log_entry, indent=2)}")
+                    try:
+                        print(f"📝 Log entry: {json.dumps(log_entry, indent=2)}")
+                    except Exception as json_error:
+                        print(f"📝 Log entry (raw): {log_entry}")
+                        print(f"⚠️ JSON serialization error: {json_error}")
+                        
+            except Exception as json_error:
+                print(f"⚠️ JSON serialization error: {json_error}")
+                # Try to save a simplified version
+                try:
+                    simplified_log = {
+                        "timestamp": log_entry.get("timestamp", ""),
+                        "activity_type": log_entry.get("activity_type", ""),
+                        "department": log_entry.get("department", ""),
+                        "error": "Data serialization failed"
+                    }
+                    with open(log_file, 'w', encoding='utf-8') as f:
+                        json.dump([simplified_log], f, indent=2, ensure_ascii=False)
+                    print(f"✅ Saved simplified log entry")
+                except Exception as fallback_error:
+                    print(f"❌ Could not save even simplified log: {fallback_error}")
             
         except Exception as e:
             print(f"Error: Could not log activity: {e}")
@@ -215,7 +256,12 @@ class SimpleConfig:
             traceback.print_exc()
             
             # Fallback: at least print the log entry for debugging
-            print(f"📝 Fallback log entry: {json.dumps(log_entry, indent=2)}")
+            try:
+                sanitized_log_entry = cls.sanitize_for_json(log_entry)
+                print(f"📝 Fallback log entry: {json.dumps(sanitized_log_entry, indent=2)}")
+            except Exception as fallback_json_error:
+                print(f"📝 Fallback log entry (raw): {log_entry}")
+                print(f"⚠️ Fallback JSON error: {fallback_json_error}")
     
     @classmethod
     def get_logs(cls, activity_type: str, limit: int = 100, department: str = None) -> List[Dict]:

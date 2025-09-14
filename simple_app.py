@@ -136,6 +136,10 @@ def main():
         st.info("Click the 'Login' button in the sidebar to continue")
         return
     
+    # Debug: Print session state
+    print(f"🔍 DEBUG: User is logged in - {st.session_state.get('user_email', 'No email')}")
+    print(f"🔍 DEBUG: User name - {st.session_state.get('user_name', 'No name')}")
+    
     # Get user information from session state
     user_email = st.session_state.get("user_email", "")
     user_name = st.session_state.get("user_name", "")
@@ -203,6 +207,11 @@ def main():
     
     # Chat input
     if prompt := st.chat_input(f"Ask about {department} policies..."):
+        # Debug: Print prompt
+        print(f"🔍 DEBUG: User asked question: {prompt}")
+        print(f"🔍 DEBUG: User email: {st.session_state.get('user_email', 'No email')}")
+        print(f"🔍 DEBUG: User name: {st.session_state.get('user_name', 'No name')}")
+        
         # Add user message
         st.session_state.messages.append({"role": "user", "content": prompt})
         

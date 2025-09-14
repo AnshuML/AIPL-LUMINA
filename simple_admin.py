@@ -341,9 +341,24 @@ def main():
                         mime="application/json"
                     )
         
-        queries = config.get_logs("queries", limit=100)
-        user_logins = config.get_logs("user_logins", limit=50)
-        uploads = config.get_logs("uploads", limit=50)
+        # Get logs with force refresh
+        try:
+            queries = config.get_logs("queries", limit=100)
+            user_logins = config.get_logs("user_logins", limit=50)
+            uploads = config.get_logs("uploads", limit=50)
+            
+            # Debug: Print log counts
+            print(f"🔍 DEBUG: Admin panel - Queries: {len(queries)}, Logins: {len(user_logins)}, Uploads: {len(uploads)}")
+            
+            # Force refresh the page to show updated logs
+            if st.button("🔄 Refresh Logs", key="refresh_logs"):
+                st.rerun()
+            
+        except Exception as e:
+            print(f"❌ Error getting logs in admin panel: {e}")
+            queries = []
+            user_logins = []
+            uploads = []
         
         # Show current activity summary
         col1, col2, col3, col4 = st.columns(4)

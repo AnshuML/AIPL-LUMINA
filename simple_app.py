@@ -219,6 +219,40 @@ def main():
         with st.chat_message("user"):
             st.markdown(f"<div class='chat-message user-message'>{prompt}</div>", unsafe_allow_html=True)
         
+        # Force logging of user query immediately
+        try:
+            query_data = {
+                "user_email": st.session_state.get("user_email", "unknown"),
+                "user_name": st.session_state.get("user_name", "unknown"),
+                "question": prompt,
+                "answer": "Processing...",
+                "department": department,
+                "language": language,
+                "chunks_used": 0,
+                "sources": [],
+                "confidence": "processing",
+                "response_time_seconds": 0,
+                "model_used": "processing",
+                "timestamp": datetime.now().isoformat()
+            }
+            
+            print(f"🔍 DEBUG: Logging user query immediately for {query_data['user_email']}")
+            print(f"🔍 DEBUG: Question: {prompt}")
+            print(f"🔍 DEBUG: User: {st.session_state.get('user_name', 'No name')}")
+            
+            # Force logging
+            config.log_activity("queries", query_data)
+            print(f"✅ User query logged immediately")
+            
+            # Verify log was written
+            logs = config.get_logs("queries", limit=5)
+            print(f"🔍 DEBUG: Total queries after logging: {len(logs)}")
+            
+        except Exception as e:
+            print(f"❌ Error logging user query immediately: {e}")
+            import traceback
+            traceback.print_exc()
+        
         # Process query
         with st.chat_message("assistant"):
             with st.spinner("Lumina Thinking..."):
@@ -268,12 +302,16 @@ def main():
                             print(f"🔍 DEBUG: Attempting to log query for {query_data['user_email']}")
                             print(f"🔍 DEBUG: Question: {query_data['question'][:50]}...")
                             
+                            # Force logging
                             config.log_activity("queries", query_data)
                             print(f"✅ Query logged successfully for {st.session_state.get('user_email', 'unknown')}")
                             
                             # Verify log was written
                             logs = config.get_logs("queries", limit=5)
                             print(f"🔍 DEBUG: Total queries in log: {len(logs)}")
+                            
+                            # Force refresh admin panel
+                            st.rerun()
                             
                         except Exception as e:
                             print(f"❌ Error logging query: {e}")
@@ -297,7 +335,7 @@ def main():
                         
                         # Log the query with complete user information
                         try:
-                            config.log_activity("queries", {
+                            query_data = {
                                 "user_email": st.session_state.get("user_email", "unknown"),
                                 "user_name": st.session_state.get("user_name", "unknown"),
                                 "question": prompt,
@@ -310,10 +348,27 @@ def main():
                                 "response_time_seconds": 0,
                                 "model_used": "none",
                                 "timestamp": datetime.now().isoformat()
-                            })
+                            }
+                            
+                            # Debug: Print query data
+                            print(f"🔍 DEBUG: Attempting to log query for {query_data['user_email']}")
+                            print(f"🔍 DEBUG: Question: {query_data['question'][:50]}...")
+                            
+                            # Force logging
+                            config.log_activity("queries", query_data)
                             print(f"✅ Query logged successfully for {st.session_state.get('user_email', 'unknown')}")
+                            
+                            # Verify log was written
+                            logs = config.get_logs("queries", limit=5)
+                            print(f"🔍 DEBUG: Total queries in log: {len(logs)}")
+                            
+                            # Force refresh admin panel
+                            st.rerun()
+                            
                         except Exception as e:
                             print(f"❌ Error logging query: {e}")
+                            import traceback
+                            traceback.print_exc()
                 
                 except Exception as e:
                     error_msg = f"Sorry, I encountered an error: {str(e)}"

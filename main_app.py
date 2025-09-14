@@ -143,13 +143,19 @@ def show_login_page():
                     
                     # Debug: Print login data
                     print(f"🔍 DEBUG: Attempting to log login for {login_data['user_email']}")
+                    print(f"🔍 DEBUG: User name: {name}")
+                    print(f"🔍 DEBUG: Login time: {login_data['login_time']}")
                     
+                    # Force logging
                     config.log_activity("user_logins", login_data)
                     print(f"✅ Login logged successfully for {email}")
                     
                     # Verify log was written
                     logs = config.get_logs("user_logins", limit=5)
                     print(f"🔍 DEBUG: Total logins in log: {len(logs)}")
+                    
+                    # Force refresh
+                    st.rerun()
                     
                 except Exception as e:
                     print(f"❌ Error logging login: {e}")

@@ -44,7 +44,7 @@ class SimpleRAGPipeline:
         self.config = config.RAG_CONFIG
         
         # Check if OpenAI API key is available
-        api_key = os.getenv("OPENAI_API_KEY")
+        api_key = self._get_openai_api_key()
         if not api_key:
             logger.warning("OpenAI API key not found. RAG pipeline will be limited to text search only.")
             self.embedding_model = None
@@ -84,10 +84,42 @@ class SimpleRAGPipeline:
         # Load or create indices
         self._load_or_create_indices()
     
+    def _get_openai_api_key(self):
+        """Get OpenAI API key from multiple sources"""
+        # Try Streamlit secrets first
+        try:
+            import streamlit as st
+            if hasattr(st, 'secrets') and 'OPENAI_API_KEY' in st.secrets:
+                return st.secrets['OPENAI_API_KEY']
+        except:
+            pass
+        
+        # Try environment variable
+        api_key = os.getenv("OPENAI_API_KEY")
+        if api_key:
+            return api_key
+        
+        return None
+    
     def _load_or_create_indices(self):
         """Load existing indices or create new ones"""
-        # Always create new indices to ensure latest documents are processed
-        logger.info("Creating new indices to ensure latest documents are processed...")
+        faiss_path = self.config.get("faiss_path", "index/faiss_index")
+        bm25_path = self.config.get("bm25_path", "index/bm25.pkl")
+        
+        # Try to load existing indices first
+        if os.path.exists(faiss_path) and os.path.exists(bm25_path):
+            try:
+                logger.info("Loading existing indices...")
+                self._load_indices(faiss_path, bm25_path)
+                logger.info(f"Loaded existing indices: {len(self.chunk_texts)} chunks")
+                return
+            except Exception as e:
+                logger.warning(f"Failed to load existing indices: {e}")
+                logger.info("Creating new indices...")
+        else:
+            logger.info("No existing indices found, creating new ones...")
+        
+        # Create new indices if loading failed or doesn't exist
         self._create_new_indices()
     
     def _load_indices(self, faiss_path: str, bm25_path: str):
@@ -402,6 +434,31 @@ class SimpleRAGPipeline:
             logger.error(f"Error in reranking: {e}")
             return results[:top_n]
     
+    def rebuild_indices(self):
+        """Force rebuild indices from all documents"""
+        logger.info("Force rebuilding indices...")
+        # Clear existing indices
+        self.faiss_index = None
+        self.bm25_index = None
+        self.chunk_texts = []
+        self.chunk_metadata = []
+        
+        # Remove old index files to force recreation
+        faiss_path = self.config.get("faiss_path", "index/faiss_index")
+        bm25_path = self.config.get("bm25_path", "index/bm25.pkl")
+        
+        try:
+            if os.path.exists(faiss_path):
+                os.remove(faiss_path)
+            if os.path.exists(bm25_path):
+                os.remove(bm25_path)
+        except Exception as e:
+            logger.warning(f"Could not remove old index files: {e}")
+        
+        # Create new indices
+        self._create_new_indices()
+        logger.info(f"Indices rebuilt: {len(self.chunk_texts)} chunks")
+
     def apply_mmr(self, results: List[Dict], lambda_param: float = 0.7, top_k: int = 10) -> List[Dict]:
         """Apply Maximal Marginal Relevance for diversity"""
         if len(results) <= top_k or not results:

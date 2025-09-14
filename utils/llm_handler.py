@@ -13,8 +13,37 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Configure OpenAI
-openai.api_key = os.getenv("OPENAI_API_KEY")
+# Configure OpenAI - try multiple sources for API key
+def get_openai_api_key():
+    """Get OpenAI API key from multiple sources"""
+    # Try Streamlit secrets first
+    try:
+        import streamlit as st
+        if hasattr(st, 'secrets') and 'OPENAI_API_KEY' in st.secrets:
+            return st.secrets['OPENAI_API_KEY']
+    except:
+        pass
+    
+    # Try environment variable
+    api_key = os.getenv("OPENAI_API_KEY")
+    if api_key:
+        return api_key
+    
+    # Try .env file
+    load_dotenv()
+    api_key = os.getenv("OPENAI_API_KEY")
+    if api_key:
+        return api_key
+    
+    return None
+
+# Set OpenAI API key
+api_key = get_openai_api_key()
+if api_key:
+    openai.api_key = api_key
+    logger.info("OpenAI API key loaded successfully")
+else:
+    logger.warning("OpenAI API key not found in any source")
 
 class LLMHandler:
     def __init__(self, model: str = "gpt-4", temperature: float = 0.3):

@@ -199,6 +199,7 @@ def main():
                     })
                     
                     st.success(f"✅ Document '{uploaded_file.name}' uploaded successfully to {department} department!")
+                    st.info("💡 Remember to click 'Rebuild Index' to make the new document searchable in the chatbot.")
                     
                     # Refresh the page to show updated document list
                     st.rerun()
@@ -243,21 +244,9 @@ def main():
             if st.button("🔄 Rebuild Index", type="primary", help="Process all documents and rebuild search index"):
                 with st.spinner("🔄 Rebuilding index... This may take a few minutes."):
                     try:
-                        # Clear existing pipeline completely
-                        import simple_rag_pipeline
-                        simple_rag_pipeline._rag_pipeline = None
-                        
-                        # Remove old index files to force recreation
-                        faiss_path = "index/faiss_index"
-                        bm25_path = "index/bm25.pkl"
-                        
-                        if os.path.exists(faiss_path):
-                            os.remove(faiss_path)
-                        if os.path.exists(bm25_path):
-                            os.remove(bm25_path)
-                        
-                        # Create new pipeline (this will rebuild indices)
+                        # Get RAG pipeline and rebuild indices
                         rag_pipeline = get_rag_pipeline()
+                        rag_pipeline.rebuild_indices()
                         
                         # Get document count
                         total_docs = len(config.get_documents())
@@ -368,7 +357,16 @@ def main():
         with col4:
             st.metric("🔄 Indexing Events", len(config.get_logs("indexing", limit=50)))
         
+        # Debug information
         st.write(f"**Debug:** Found {len(queries)} query logs, {len(user_logins)} login logs, {len(uploads)} upload logs")
+        
+        # Check if logs directory exists and show files
+        logs_dir = config.LOGS_DIR
+        if os.path.exists(logs_dir):
+            log_files = [f for f in os.listdir(logs_dir) if f.endswith('.json')]
+            st.write(f"**Log Files:** {', '.join(log_files)}")
+        else:
+            st.warning(f"Logs directory not found: {logs_dir}")
         
         if queries:
             # Department breakdown

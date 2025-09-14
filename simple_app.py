@@ -234,20 +234,37 @@ def main():
                         response = response_data.get('answer', 'Sorry, I could not generate a response.')
                         
                         # Log the query with complete user information
-                        config.log_activity("queries", {
-                            "user_email": st.session_state.get("user_email", "unknown"),
-                            "user_name": st.session_state.get("user_name", "unknown"),
-                            "question": prompt,
-                            "answer": response,
-                            "department": department,
-                            "language": language,
-                            "chunks_used": len(search_results),
-                            "sources": [result["metadata"]["filename"] for result in search_results],
-                            "confidence": response_data.get('confidence', 'medium'),
-                            "response_time_seconds": response_data.get('response_time', 0),
-                            "model_used": response_data.get('model_used', 'gpt-4'),
-                            "timestamp": datetime.now().isoformat()
-                        })
+                        try:
+                            query_data = {
+                                "user_email": st.session_state.get("user_email", "unknown"),
+                                "user_name": st.session_state.get("user_name", "unknown"),
+                                "question": prompt,
+                                "answer": response,
+                                "department": department,
+                                "language": language,
+                                "chunks_used": len(search_results),
+                                "sources": [result["metadata"]["filename"] for result in search_results],
+                                "confidence": response_data.get('confidence', 'medium'),
+                                "response_time_seconds": response_data.get('response_time', 0),
+                                "model_used": response_data.get('model_used', 'gpt-4'),
+                                "timestamp": datetime.now().isoformat()
+                            }
+                            
+                            # Debug: Print query data
+                            print(f"🔍 DEBUG: Attempting to log query for {query_data['user_email']}")
+                            print(f"🔍 DEBUG: Question: {query_data['question'][:50]}...")
+                            
+                            config.log_activity("queries", query_data)
+                            print(f"✅ Query logged successfully for {st.session_state.get('user_email', 'unknown')}")
+                            
+                            # Verify log was written
+                            logs = config.get_logs("queries", limit=5)
+                            print(f"🔍 DEBUG: Total queries in log: {len(logs)}")
+                            
+                        except Exception as e:
+                            print(f"❌ Error logging query: {e}")
+                            import traceback
+                            traceback.print_exc()
                         
                         # Display response
                         st.markdown(f"<div class='chat-message assistant-message'>{response}</div>", unsafe_allow_html=True)
@@ -265,20 +282,24 @@ def main():
                         st.markdown(f"<div class='chat-message assistant-message'>{response}</div>", unsafe_allow_html=True)
                         
                         # Log the query with complete user information
-                        config.log_activity("queries", {
-                            "user_email": st.session_state.get("user_email", "unknown"),
-                            "user_name": st.session_state.get("user_name", "unknown"),
-                            "question": prompt,
-                            "answer": response,
-                            "department": department,
-                            "language": language,
-                            "chunks_used": 0,
-                            "sources": [],
-                            "confidence": "low",
-                            "response_time_seconds": 0,
-                            "model_used": "none",
-                            "timestamp": datetime.now().isoformat()
-                        })
+                        try:
+                            config.log_activity("queries", {
+                                "user_email": st.session_state.get("user_email", "unknown"),
+                                "user_name": st.session_state.get("user_name", "unknown"),
+                                "question": prompt,
+                                "answer": response,
+                                "department": department,
+                                "language": language,
+                                "chunks_used": 0,
+                                "sources": [],
+                                "confidence": "low",
+                                "response_time_seconds": 0,
+                                "model_used": "none",
+                                "timestamp": datetime.now().isoformat()
+                            })
+                            print(f"✅ Query logged successfully for {st.session_state.get('user_email', 'unknown')}")
+                        except Exception as e:
+                            print(f"❌ Error logging query: {e}")
                 
                 except Exception as e:
                     error_msg = f"Sorry, I encountered an error: {str(e)}"
@@ -286,15 +307,19 @@ def main():
                     print(f"Error processing query: {e}")
                     
                     # Log the error with complete user information
-                    config.log_activity("errors", {
-                        "user_email": st.session_state.get("user_email", "unknown"),
-                        "user_name": st.session_state.get("user_name", "unknown"),
-                        "question": prompt,
-                        "error": str(e),
-                        "department": department,
-                        "language": language,
-                        "timestamp": datetime.now().isoformat()
-                    })
+                    try:
+                        config.log_activity("errors", {
+                            "user_email": st.session_state.get("user_email", "unknown"),
+                            "user_name": st.session_state.get("user_name", "unknown"),
+                            "question": prompt,
+                            "error": str(e),
+                            "department": department,
+                            "language": language,
+                            "timestamp": datetime.now().isoformat()
+                        })
+                        print(f"✅ Error logged successfully for {st.session_state.get('user_email', 'unknown')}")
+                    except Exception as log_error:
+                        print(f"❌ Error logging error: {log_error}")
         
         # Add assistant message to session state
         if 'response' in locals():

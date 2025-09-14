@@ -9,14 +9,28 @@ import subprocess
 import argparse
 from pathlib import Path
 
+# Try to load .env file
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 # Set OpenAI API key from environment or prompt user
 if not os.getenv("OPENAI_API_KEY"):
     print("⚠️  OpenAI API key not found in environment variables.")
-    print("Please set OPENAI_API_KEY environment variable or create a .env file.")
+    print("Please set OPENAI_API_KEY environment variable.")
     print("For local development, you can set it in your terminal:")
     print("Windows: $env:OPENAI_API_KEY='your-api-key-here'")
     print("Linux/Mac: export OPENAI_API_KEY='your-api-key-here'")
-    sys.exit(1)
+    print("\nOr you can set it directly in this session:")
+    api_key = input("Enter your OpenAI API key: ").strip()
+    if api_key:
+        os.environ["OPENAI_API_KEY"] = api_key
+        print("✅ API key set for this session")
+    else:
+        print("❌ No API key provided. Exiting.")
+        sys.exit(1)
 
 def setup_environment():
     """Setup the environment for the simple version"""

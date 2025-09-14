@@ -1,0 +1,72 @@
+{
+  "queries": [
+    {
+      "timestamp": "2025-09-13T21:34:47.375264",
+      "data": {
+        "user_email": "test@aiplabro.com",
+        "user_name": "Test User",
+        "question": "Test question",
+        "answer": "Test answer",
+        "department": "HR",
+        "timestamp": "2025-09-13T21:45:00"
+      }
+    }
+  ],
+  "uploads": [
+    {
+      "timestamp": "2025-09-13T21:31:21.788471",
+      "data": {
+        "filename": "AJIT_08.pdf",
+        "department": "HR",
+        "size": 704231,
+        "timestamp": "2025-09-13T21:31:21.788471"
+      }
+    },
+    {
+      "timestamp": "2025-09-13T21:32:16.485911",
+      "data": {
+        "filename": "AJIT_02.pdf",
+        "department": "HR",
+        "size": 838701,
+        "timestamp": "2025-09-13T21:32:16.485911"
+      }
+    },
+    {
+      "timestamp": "2025-09-13T22:07:40.375778",
+      "data": {
+        "filename": "AJIT_02.pdf",
+        "department": "HR",
+        "size": 838701,
+        "timestamp": "2025-09-13T22:07:40.374457"
+      }
+    },
+    {
+      "timestamp": "2025-09-13T22:12:17.487095",
+      "data": {
+        "filename": "Attendance_policy.pdf",
+        "department": "HR",
+        "size": 62647,
+        "timestamp": "2025-09-13T22:12:17.484914"
+      }
+    },
+    {
+      "timestamp": "2025-09-13T23:06:11.509463",
+      "data": {
+        "filename": "AJIT_07.pdf",
+        "department": "HR",
+        "size": 673966,
+        "timestamp": "2025-09-13T23:06:11.508461"
+      }
+    },
+    {
+      "timestamp": "2025-09-13T23:10:35.269175",
+      "data": {
+        "filename": "AJIT_01.pdf",
+        "department": "HR",
+        "size": 603382,
+        "timestamp": "2025-09-13T23:10:35.268180"
+      }
+    }
+  ],
+  "errors": []
+}

@@ -132,13 +132,29 @@ def show_login_page():
                 st.session_state.logged_in = True
                 
                 # Log user login
-                config.log_activity("user_logins", {
-                    "user_email": email,
-                    "user_name": name,
-                    "login_time": datetime.now().isoformat(),
-                    "department": "HR",
-                    "language": "en"
-                })
+                try:
+                    login_data = {
+                        "user_email": email,
+                        "user_name": name,
+                        "login_time": datetime.now().isoformat(),
+                        "department": "HR",
+                        "language": "en"
+                    }
+                    
+                    # Debug: Print login data
+                    print(f"🔍 DEBUG: Attempting to log login for {login_data['user_email']}")
+                    
+                    config.log_activity("user_logins", login_data)
+                    print(f"✅ Login logged successfully for {email}")
+                    
+                    # Verify log was written
+                    logs = config.get_logs("user_logins", limit=5)
+                    print(f"🔍 DEBUG: Total logins in log: {len(logs)}")
+                    
+                except Exception as e:
+                    print(f"❌ Error logging login: {e}")
+                    import traceback
+                    traceback.print_exc()
                 
                 # Show success and redirect
                 st.success("✅ Login successful!...")

@@ -312,7 +312,7 @@ def main():
                         print(f"🔍 DEBUG: Total queries in log: {len(logs)}")
                         
                         # Force refresh admin panel
-                        st.rerun()
+                        # st.rerun()  # Commented out to prevent page refresh
                         
                     except Exception as e:
                         print(f"❌ Error logging query: {e}")
@@ -321,8 +321,13 @@ def main():
                     
                     # Display response
                     print(f"🔍 DEBUG: About to display response: {response[:100]}...")
-                    with st.chat_message("assistant"):
-                        st.write(response)
+                    
+                    # Create a container for the response
+                    with st.container():
+                        st.markdown("**🤖 Assistant:**")
+                        st.markdown(response)
+                        st.markdown("---")
+                    
                     print(f"✅ DEBUG: Response displayed successfully")
                     
                     # Add response to session state
@@ -339,8 +344,13 @@ def main():
                     # No relevant chunks found
                     response = "I couldn't find relevant information in the uploaded documents. Please make sure documents are uploaded for this department or try rephrasing your question."
                     print(f"🔍 DEBUG: No chunks found, using default response: {response[:100]}...")
-                    with st.chat_message("assistant"):
-                        st.write(response)
+                    
+                    # Create a container for the response
+                    with st.container():
+                        st.markdown("**🤖 Assistant:**")
+                        st.markdown(response)
+                        st.markdown("---")
+                    
                     print(f"✅ DEBUG: No chunks response displayed successfully")
                     
                     # Add response to session state
@@ -376,7 +386,7 @@ def main():
                         print(f"🔍 DEBUG: Total queries in log: {len(logs)}")
                         
                         # Force refresh admin panel
-                        st.rerun()
+                        # st.rerun()  # Commented out to prevent page refresh
                         
                     except Exception as e:
                         print(f"❌ Error logging query: {e}")
@@ -386,8 +396,13 @@ def main():
             except Exception as e:
                 error_msg = f"Sorry, I encountered an error: {str(e)}"
                 print(f"🔍 DEBUG: Error occurred: {error_msg}")
-                with st.chat_message("assistant"):
-                    st.write(f"❌ {error_msg}")
+                
+                # Create a container for the error response
+                with st.container():
+                    st.markdown("**🤖 Assistant:**")
+                    st.markdown(f"❌ {error_msg}")
+                    st.markdown("---")
+                
                 print(f"Error processing query: {e}")
                 
                 # Add error message to session state

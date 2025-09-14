@@ -216,6 +216,21 @@ st.markdown("""
         max-width: 100% !important;
         width: 100% !important;
     }
+    
+    /* Hide Streamlit default chat message icons */
+    .stChatMessage > div > div > div > div > div {
+        display: none !important;
+    }
+    
+    .stChatMessage > div > div > div > div {
+        display: none !important;
+    }
+    
+    /* Hide any remaining generic icons */
+    .stChatMessage [data-testid="chatAvatarIcon-user"],
+    .stChatMessage [data-testid="chatAvatarIcon-assistant"] {
+        display: none !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -328,23 +343,22 @@ def main():
     if "session_id" not in st.session_state:
         st.session_state.session_id = f"{int(time.time())}_{hash(user_email)}"
     
-    # Display chat messages
+    # Display chat messages with custom styling (no generic icons)
     for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            if message["role"] == "assistant":
-                st.markdown(f"""
-                <div class='chat-message {message['role']}-message'>
-                    <div class='lumina-brand'>🤖 Lumina Assistant</div>
-                    {message['content']}
-                </div>
-                """, unsafe_allow_html=True)
-            else:
-                st.markdown(f"""
-                <div class='chat-message {message['role']}-message'>
-                    <div class='lumina-brand'>👤 You</div>
-                    {message['content']}
-                </div>
-                """, unsafe_allow_html=True)
+        if message["role"] == "assistant":
+            st.markdown(f"""
+            <div class='chat-message {message['role']}-message'>
+                <div class='lumina-brand'>🤖 Lumina Assistant</div>
+                {message['content']}
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown(f"""
+            <div class='chat-message {message['role']}-message'>
+                <div class='lumina-brand'>👤 You</div>
+                {message['content']}
+            </div>
+            """, unsafe_allow_html=True)
     
     # Chat input - Same width as other elements
     if prompt := st.chat_input(f"Ask about {department} policies..."):
@@ -356,14 +370,13 @@ def main():
         # Add user message
         st.session_state.messages.append({"role": "user", "content": prompt})
         
-        # Display user message
-        with st.chat_message("user"):
-            st.markdown(f"""
-            <div class='chat-message user-message'>
-                <div class='lumina-brand'>👤 You</div>
-                {prompt}
-            </div>
-            """, unsafe_allow_html=True)
+        # Display user message (no generic icon)
+        st.markdown(f"""
+        <div class='chat-message user-message'>
+            <div class='lumina-brand'>👤 You</div>
+            {prompt}
+        </div>
+        """, unsafe_allow_html=True)
         
         # Force logging of user query immediately
         try:

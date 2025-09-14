@@ -205,6 +205,17 @@ st.markdown("""
         backdrop-filter: blur(4px);
         border: 1px solid rgba(255, 255, 255, 0.18);
     }
+    
+    /* Ensure chat input has same width as other elements */
+    .stChatInput > div {
+        max-width: 100% !important;
+        width: 100% !important;
+    }
+    
+    .stChatInput input {
+        max-width: 100% !important;
+        width: 100% !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -235,51 +246,32 @@ def main():
     
     # Show welcome screen only if no messages exist
     if not st.session_state.messages:
-        # Dynamic greeting based on time with robust timezone handling
+        # Dynamic greeting based on time - simplified and reliable
         from datetime import datetime
-        import time
         
-        # Get current time - try multiple methods to ensure accuracy
+        # Get current time
         now = datetime.now()
         current_hour = now.hour
         current_time = now.strftime("%H:%M")
         
-        # Also try UTC time as fallback
-        utc_now = datetime.utcnow()
-        utc_hour = utc_now.hour
-        
-        # Use the later time to ensure we get the correct greeting
-        actual_hour = max(current_hour, utc_hour)
-        
-        # Force refresh every 5 minutes to update greeting
-        cache_key = f"greeting_{actual_hour}_{now.minute // 5}"
-        
-        if 5 <= actual_hour < 12:
+        # Simple, reliable greeting logic
+        if 5 <= current_hour < 12:
             greeting = "Good morning!"
-        elif 12 <= actual_hour < 17:
+        elif 12 <= current_hour < 17:
             greeting = "Good afternoon!"
-        elif 17 <= actual_hour < 22:  # Extended evening until 10 PM
+        elif 17 <= current_hour < 22:  # Extended evening until 10 PM
             greeting = "Good evening!"
         else:
             greeting = "Good night!"
         
         # Debug: Print current time and greeting
-        print(f"🕐 Local time: {current_time} (Hour: {current_hour})")
-        print(f"🌍 UTC time: {utc_now.strftime('%H:%M')} (Hour: {utc_hour})")
-        print(f"✅ Using hour: {actual_hour}")
+        print(f"🕐 Current time: {current_time} (Hour: {current_hour})")
         print(f"👋 Generated greeting: {greeting}")
-        print(f"🔄 Cache key: {cache_key}")
         
-        # Add a small refresh button to force greeting update
-        col1, col2, col3 = st.columns([1, 1, 1])
-        with col2:
-            if st.button("🔄 Refresh Greeting", key="refresh_greeting"):
-                st.rerun()
-        
-        # Welcome Screen - Professional Horizontal Layout
+        # Welcome Screen - Professional Horizontal Layout (Same width as other elements)
         st.markdown(f"""
         <div style="display: flex; justify-content: center; align-items: center; min-height: 40vh; padding: 1rem;">
-            <div style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); border-radius: 20px; padding: 2.5rem 4rem; text-align: center; box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3); border: 2px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); max-width: 800px; width: 90%; min-height: 160px; display: flex; flex-direction: column; justify-content: center;">
+            <div style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); border-radius: 20px; padding: 2.5rem 4rem; text-align: center; box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3); border: 2px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); max-width: 100%; width: 100%; min-height: 160px; display: flex; flex-direction: column; justify-content: center;">
                 <h1 style="font-size: 4rem; font-weight: bold; color: #ffffff; margin: 0 0 0.8rem 0; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; letter-spacing: 2px;">AIPL LUMINA</h1>
                 <div style="display: flex; justify-content: center; align-items: center; gap: 2rem; margin-top: 0.5rem;">
                     <span style="font-size: 1.2rem; color: #ff6b9d; font-weight: 600; text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">AIPL Group</span>
@@ -289,10 +281,12 @@ def main():
         </div>
         """, unsafe_allow_html=True)
     
-    # User info display (always show)
+    # User info display (always show) - Same width as AIPL Lumina
     st.markdown(f"""
-    <div style="background-color: #2c3e50; padding: 1rem; border-radius: 10px; margin-bottom: 1rem; text-align: center;">
-        <p style="margin: 0; color: #bdc3c7;">👤 <strong>{user_name}</strong> ({user_email}) | 🏢 {department} | 🌐 {config.LANGUAGES[language]}</p>
+    <div style="display: flex; justify-content: center; padding: 0 1rem;">
+        <div style="background-color: #2c3e50; padding: 1rem; border-radius: 10px; margin-bottom: 1rem; text-align: center; width: 100%; max-width: 100%;">
+            <p style="margin: 0; color: #bdc3c7;">👤 <strong>{user_name}</strong> ({user_email}) | 🏢 {department} | 🌐 {config.LANGUAGES[language]}</p>
+        </div>
     </div>
     """, unsafe_allow_html=True)
     
@@ -352,7 +346,7 @@ def main():
                 </div>
                 """, unsafe_allow_html=True)
     
-    # Chat input
+    # Chat input - Same width as other elements
     if prompt := st.chat_input(f"Ask about {department} policies..."):
         # Debug: Print prompt
         print(f"🔍 DEBUG: User asked question: {prompt}")

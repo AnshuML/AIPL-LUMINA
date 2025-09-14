@@ -43,6 +43,19 @@ class SimpleConfig:
         "pa": "Punjabi"
     }
     
+    # RAG Configuration
+    RAG_CONFIG = {
+        "embedding_model": "text-embedding-3-large",
+        "chunk_size": 400,
+        "chunk_overlap": 80,
+        "faiss_path": "index/faiss_index",
+        "bm25_path": "index/bm25.pkl",
+        "max_chunks": 5,
+        "similarity_threshold": 0.7,
+        "hybrid_search_alpha": 0.7,
+        "rerank_top_k": 10
+    }
+    
     @staticmethod
     def sanitize_for_json(obj):
         """Recursively sanitize data to ensure JSON serialization"""

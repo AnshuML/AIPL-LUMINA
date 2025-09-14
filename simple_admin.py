@@ -733,8 +733,18 @@ def main():
             )
         
         # Add refresh button
-        if st.button("🔄 Refresh Logs", help="Refresh logs from files"):
-            st.rerun()
+        col_refresh1, col_refresh2 = st.columns([1, 1])
+        
+        with col_refresh1:
+            if st.button("🔄 Refresh Logs", help="Refresh logs from files"):
+                st.rerun()
+        
+        with col_refresh2:
+            if st.button("🗑️ Clear Cache", help="Clear cache and force reload"):
+                # Clear any cached data
+                if hasattr(st.session_state, 'temp_logs'):
+                    del st.session_state.temp_logs
+                st.rerun()
         
         # Get logs - pass department to get_logs function
         if department != "All":
@@ -745,6 +755,42 @@ def main():
         # Debug information
         st.write(f"**Debug:** Loading {log_type} logs for {department} department")
         st.write(f"**Found:** {len(logs)} logs")
+        
+        # Additional debug - show first few logs
+        if logs:
+            st.write("**Sample logs:**")
+            for i, log in enumerate(logs[:3]):  # Show first 3 logs
+                data = log.get('data', {})
+                st.write(f"  Log {i+1}: {data.get('user_name', 'Unknown')} - {data.get('question', 'No question')[:50]}...")
+        else:
+            st.write("**No logs found!**")
+            
+            # Check if log files exist
+            import os
+            from datetime import datetime
+            today = datetime.now().strftime('%Y-%m-%d')
+            
+            st.write("**File Check:**")
+            daily_file = f"logs/{log_type}_{today}.json"
+            main_file = f"logs/{log_type}.json"
+            
+            st.write(f"Daily file exists: {os.path.exists(daily_file)}")
+            st.write(f"Main file exists: {os.path.exists(main_file)}")
+            
+            if os.path.exists(daily_file):
+                try:
+                    import json
+                    with open(daily_file, 'r') as f:
+                        file_data = json.load(f)
+                        st.write(f"Daily file contains {len(file_data)} entries")
+                except Exception as e:
+                    st.write(f"Error reading daily file: {e}")
+            
+            st.write("**Troubleshooting:**")
+            st.write("1. Check if logs are being saved to correct location")
+            st.write("2. Verify log type and department filter")
+            st.write("3. Try refreshing the page")
+            st.write("4. Check console logs for save confirmations")
         
         if logs:
             st.write(f"**{len(logs)} {log_type} found for {department} department:**")

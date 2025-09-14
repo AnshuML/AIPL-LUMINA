@@ -429,7 +429,7 @@ def main():
     st.markdown("---")
     st.markdown("""
     <div class="footer">
-        <p>🤖 Welcome To AIPL Lumina | Your Intelligent HR Assistant</p>
+        
         <p>Powered by advanced AI technology for accurate, context-based answers</p>
     </div>
     """, unsafe_allow_html=True)

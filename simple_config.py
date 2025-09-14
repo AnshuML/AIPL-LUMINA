@@ -96,29 +96,34 @@ class SimpleConfig:
                 "data": sanitized_data
             }
             
-            # Main log file (unified)
+            # Create daily log files with automatic rotation
+            today = datetime.now().strftime('%Y-%m-%d')
+            daily_log_file = os.path.join(base_dir, f"{activity_type}_{today}.json")
             main_log_file = os.path.join(base_dir, f"{activity_type}.json")
             
-            # Load existing logs
+            # Load existing logs from today's file
             logs = []
-            if os.path.exists(main_log_file):
+            if os.path.exists(daily_log_file):
                 try:
-                    with open(main_log_file, 'r', encoding='utf-8') as f:
+                    with open(daily_log_file, 'r', encoding='utf-8') as f:
                         logs = json.load(f)
                 except Exception as load_error:
-                    print(f"Warning: Error loading existing logs: {load_error}")
+                    print(f"Warning: Error loading today's logs: {load_error}")
             
             # Add new log entry
             logs.append(log_entry)
             
-            # Keep only last 1000 entries
-            logs = logs[-1000:]
-            
-            # Save logs
+            # Save today's logs
             try:
-                with open(main_log_file, 'w', encoding='utf-8') as f:
+                with open(daily_log_file, 'w', encoding='utf-8') as f:
                     json.dump(logs, f, indent=2, ensure_ascii=False)
-                print(f"✅ Successfully logged {activity_type} activity to {main_log_file}")
+                print(f"✅ Successfully logged {activity_type} activity to {daily_log_file}")
+                
+                # Also update main log file with recent entries (last 100)
+                recent_logs = logs[-100:]
+                with open(main_log_file, 'w', encoding='utf-8') as f:
+                    json.dump(recent_logs, f, indent=2, ensure_ascii=False)
+                print(f"✅ Updated main log file: {main_log_file}")
                 
             except Exception as write_error:
                 print(f"⚠️ Could not write to log file: {write_error}")
@@ -136,13 +141,10 @@ class SimpleConfig:
     
     @classmethod
     def get_logs(cls, activity_type: str, limit: int = 100, department: str = None) -> List[Dict]:
-        """Get activity logs with optional department filter"""
+        """Get activity logs with optional department filter and daily file support"""
         try:
             # Get the base directory for logs
             base_dir = os.getenv('STREAMLIT_LOG_DIR', cls.LOGS_DIR)
-            
-            # Main log file
-            log_file = os.path.join(base_dir, f"{activity_type}.json")
             
             # Check session state for temporary logs first
             temp_logs = []
@@ -150,14 +152,35 @@ class SimpleConfig:
                 temp_logs = [log for log in st.session_state.temp_logs 
                             if log.get('activity_type') == activity_type]
             
-            # Load logs from file
+            # Load logs from all available files
             file_logs = []
-            if os.path.exists(log_file):
+            
+            # First, try to load from today's daily file
+            today = datetime.now().strftime('%Y-%m-%d')
+            daily_log_file = os.path.join(base_dir, f"{activity_type}_{today}.json")
+            if os.path.exists(daily_log_file):
                 try:
-                    with open(log_file, 'r', encoding='utf-8') as f:
-                        file_logs = json.load(f)
+                    with open(daily_log_file, 'r', encoding='utf-8') as f:
+                        daily_logs = json.load(f)
+                        file_logs.extend(daily_logs)
+                    print(f"✅ Loaded {len(daily_logs)} logs from today's file: {daily_log_file}")
                 except Exception as load_error:
-                    print(f"Warning: Error loading logs from file: {load_error}")
+                    print(f"Warning: Error loading today's logs: {load_error}")
+            
+            # Also load from main log file for historical data
+            main_log_file = os.path.join(base_dir, f"{activity_type}.json")
+            if os.path.exists(main_log_file):
+                try:
+                    with open(main_log_file, 'r', encoding='utf-8') as f:
+                        main_logs = json.load(f)
+                        # Only add logs that aren't already in daily logs (avoid duplicates)
+                        existing_timestamps = {log.get('timestamp') for log in file_logs}
+                        for log in main_logs:
+                            if log.get('timestamp') not in existing_timestamps:
+                                file_logs.append(log)
+                    print(f"✅ Loaded additional logs from main file: {main_log_file}")
+                except Exception as load_error:
+                    print(f"Warning: Error loading main logs: {load_error}")
             
             # Combine and sort logs by timestamp
             all_logs = temp_logs + file_logs
@@ -172,6 +195,7 @@ class SimpleConfig:
                         filtered_logs.append(log)
                 all_logs = filtered_logs
             
+            print(f"🔍 DEBUG: Found {len(temp_logs)} temp logs, {len(file_logs)} file logs, {len(all_logs)} total logs")
             return all_logs[:limit]  # Return last N entries
             
         except Exception as e:

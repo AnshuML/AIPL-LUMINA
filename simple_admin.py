@@ -730,14 +730,11 @@ def main():
                 key="log_limit"
             )
         
-        # Get logs
-        all_logs = config.get_logs(log_type, limit=100)
-        
-        # Filter by department if needed
+        # Get logs - pass department to get_logs function
         if department != "All":
-            logs = [log for log in all_logs if log['data'].get('department') == department]
+            logs = config.get_logs(log_type, limit=100, department=department)
         else:
-            logs = all_logs
+            logs = config.get_logs(log_type, limit=100)
         
         if logs:
             st.write(f"**{len(logs)} {log_type} found for {department} department:**")

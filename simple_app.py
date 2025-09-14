@@ -247,13 +247,13 @@ def main():
         else:
             greeting = "Good night!"
         
-        # Welcome Screen - Enhanced Design (Compact)
+        # Welcome Screen - Enhanced Design (Wide Layout)
         st.markdown(f"""
-        <div style="display: flex; justify-content: center; align-items: center; min-height: 70vh; padding: 2rem;">
-            <div style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); border-radius: 25px; padding: 4rem 3rem; text-align: center; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3); border: 2px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); max-width: 400px; width: 100%; min-height: 300px;">
-                <h1 style="font-size: 3.2rem; font-weight: bold; color: #ffffff; margin: 0 0 1.2rem 0; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">AIPL Lumina</h1>
-                <p style="font-size: 1.3rem; color: #ff6b9d; margin: 0 0 1.8rem 0; font-weight: 600; text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">AIPL Group</p>
-                <p style="font-size: 1.2rem; color: #ffd700; margin: 0; font-weight: 500; text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">{greeting}</p>
+        <div style="display: flex; justify-content: center; align-items: center; min-height: 50vh; padding: 2rem;">
+            <div style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); border-radius: 25px; padding: 3rem 5rem; text-align: center; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3); border: 2px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); max-width: 600px; width: 100%; min-height: 200px;">
+                <h1 style="font-size: 3.5rem; font-weight: bold; color: #ffffff; margin: 0 0 1rem 0; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">AIPL Lumina</h1>
+                <p style="font-size: 1.4rem; color: #ff6b9d; margin: 0 0 1.5rem 0; font-weight: 600; text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">AIPL Group</p>
+                <p style="font-size: 1.3rem; color: #ffd700; margin: 0; font-weight: 500; text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">{greeting}</p>
             </div>
         </div>
         """, unsafe_allow_html=True)

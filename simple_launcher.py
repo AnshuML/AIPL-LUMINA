@@ -16,21 +16,31 @@ try:
 except ImportError:
     pass
 
-# Set OpenAI API key from environment or prompt user
+# Set OpenAI API key from environment or secrets.toml
 if not os.getenv("OPENAI_API_KEY"):
-    print("⚠️  OpenAI API key not found in environment variables.")
-    print("Please set OPENAI_API_KEY environment variable.")
-    print("For local development, you can set it in your terminal:")
-    print("Windows: $env:OPENAI_API_KEY='your-api-key-here'")
-    print("Linux/Mac: export OPENAI_API_KEY='your-api-key-here'")
-    print("\nOr you can set it directly in this session:")
-    api_key = input("Enter your OpenAI API key: ").strip()
-    if api_key:
-        os.environ["OPENAI_API_KEY"] = api_key
-        print("✅ API key set for this session")
-    else:
-        print("❌ No API key provided. Exiting.")
-        sys.exit(1)
+    # Try to load from secrets.toml
+    try:
+        import toml
+        secrets_path = Path(__file__).parent / ".streamlit" / "secrets.toml"
+        if secrets_path.exists():
+            with open(secrets_path, 'r') as f:
+                secrets = toml.load(f)
+                if 'OPENAI_API_KEY' in secrets:
+                    os.environ["OPENAI_API_KEY"] = secrets['OPENAI_API_KEY']
+                    print("✅ OpenAI API key loaded from secrets.toml")
+                else:
+                    print("⚠️  OpenAI API key not found in secrets.toml")
+    except Exception as e:
+        print(f"⚠️  Could not load secrets.toml: {e}")
+    
+    # If still not found, show warning
+    if not os.getenv("OPENAI_API_KEY"):
+        print("⚠️  OpenAI API key not found. Please set it manually.")
+        print("You can set it in your terminal:")
+        print("Windows: $env:OPENAI_API_KEY='your-api-key-here'")
+        print("Linux/Mac: export OPENAI_API_KEY='your-api-key-here'")
+        print("Or set it in .streamlit/secrets.toml file")
+        print("RAG pipeline will be limited to text search only.")
 
 def setup_environment():
     """Setup the environment for the simple version"""

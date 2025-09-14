@@ -194,7 +194,6 @@ def main():
             st.session_state.language = language
     
     # Main chat interface
-    st.subheader("💬 Chat Interface")
     
     # Initialize session state
     if "messages" not in st.session_state:
@@ -265,7 +264,7 @@ def main():
                 rag_pipeline = get_rag_pipeline()
                 
                 # Search for relevant chunks
-                search_results = rag_pipeline.search(prompt, department=department, top_k=3)
+                search_results = rag_pipeline.search(prompt, department=department, top_k=5)
                 
                 if search_results:
                     # Prepare context

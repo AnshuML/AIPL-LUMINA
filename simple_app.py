@@ -254,25 +254,25 @@ def main():
             traceback.print_exc()
         
         # Process query
-        with st.chat_message("assistant"):
-            with st.spinner("Lumina Thinking..."):
-                try:
-                    # Debug: Print session state
-                    print(f"🔍 DEBUG: Session state - logged_in: {st.session_state.get('logged_in', False)}")
-                    print(f"🔍 DEBUG: Session state - user_email: {st.session_state.get('user_email', 'None')}")
-                    print(f"🔍 DEBUG: Session state - user_name: {st.session_state.get('user_name', 'None')}")
-                    
-                    # Get RAG pipeline
-                    rag_pipeline = get_rag_pipeline()
-                    
-                    # Search for relevant chunks
-                    search_results = rag_pipeline.search(prompt, department=department, top_k=5)
+        with st.spinner("Lumina Thinking..."):
+            try:
+                # Debug: Print session state
+                print(f"🔍 DEBUG: Session state - logged_in: {st.session_state.get('logged_in', False)}")
+                print(f"🔍 DEBUG: Session state - user_email: {st.session_state.get('user_email', 'None')}")
+                print(f"🔍 DEBUG: Session state - user_name: {st.session_state.get('user_name', 'None')}")
+                
+                # Get RAG pipeline
+                rag_pipeline = get_rag_pipeline()
+                
+                # Search for relevant chunks
+                search_results = rag_pipeline.search(prompt, department=department, top_k=5)
                     
                     if search_results:
                         # Prepare context
                         context = "\n\n".join([result["text"] for result in search_results])
                         
                         # Generate response
+                        print(f"🔍 DEBUG: Generating response for query: {prompt[:50]}...")
                         response_data = llm_handler.generate_answer(
                             query=prompt,
                             context_chunks=search_results,
@@ -280,6 +280,7 @@ def main():
                             language=language
                         )
                         response = response_data.get('answer', 'Sorry, I could not generate a response.')
+                        print(f"🔍 DEBUG: Generated response: {response[:100]}...")
                         
                         # Log the query with complete user information
                         try:
@@ -319,8 +320,10 @@ def main():
                             traceback.print_exc()
                         
                         # Display response
-                        print(f"🔍 DEBUG: Generated response: {response[:100]}...")
-                        st.markdown(f"<div class='chat-message assistant-message'>{response}</div>", unsafe_allow_html=True)
+                        print(f"🔍 DEBUG: About to display response: {response[:100]}...")
+                        with st.chat_message("assistant"):
+                            st.write(response)
+                        print(f"✅ DEBUG: Response displayed successfully")
                         
                         # Add response to session state
                         st.session_state.messages.append({"role": "assistant", "content": response})
@@ -336,7 +339,9 @@ def main():
                         # No relevant chunks found
                         response = "I couldn't find relevant information in the uploaded documents. Please make sure documents are uploaded for this department or try rephrasing your question."
                         print(f"🔍 DEBUG: No chunks found, using default response: {response[:100]}...")
-                        st.markdown(f"<div class='chat-message assistant-message'>{response}</div>", unsafe_allow_html=True)
+                        with st.chat_message("assistant"):
+                            st.write(response)
+                        print(f"✅ DEBUG: No chunks response displayed successfully")
                         
                         # Add response to session state
                         st.session_state.messages.append({"role": "assistant", "content": response})
@@ -381,7 +386,8 @@ def main():
                 except Exception as e:
                     error_msg = f"Sorry, I encountered an error: {str(e)}"
                     print(f"🔍 DEBUG: Error occurred: {error_msg}")
-                    st.error(error_msg)
+                    with st.chat_message("assistant"):
+                        st.write(f"❌ {error_msg}")
                     print(f"Error processing query: {e}")
                     
                     # Add error message to session state

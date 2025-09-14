@@ -78,6 +78,11 @@ class SimpleConfig:
             # Get the base directory for logs
             base_dir = os.getenv('STREAMLIT_LOG_DIR', cls.LOGS_DIR)
             
+            # Debug: Print current working directory and log paths
+            print(f"🔍 DEBUG: Current working directory: {os.getcwd()}")
+            print(f"🔍 DEBUG: Base log directory: {base_dir}")
+            print(f"🔍 DEBUG: LOGS_DIR: {cls.LOGS_DIR}")
+            
             # Ensure logs directory exists
             try:
                 os.makedirs(base_dir, exist_ok=True)
@@ -128,6 +133,9 @@ class SimpleConfig:
             
             # Save today's logs
             try:
+                print(f"🔍 DEBUG: Saving to daily file: {daily_log_file}")
+                print(f"🔍 DEBUG: Saving to main file: {main_log_file}")
+                
                 with open(daily_log_file, 'w', encoding='utf-8') as f:
                     json.dump(logs, f, indent=2, ensure_ascii=False)
                 print(f"✅ Successfully logged {activity_type} activity to {daily_log_file}")
@@ -137,6 +145,17 @@ class SimpleConfig:
                 with open(main_log_file, 'w', encoding='utf-8') as f:
                     json.dump(recent_logs, f, indent=2, ensure_ascii=False)
                 print(f"✅ Updated main log file: {main_log_file}")
+                
+                # Debug: Verify files exist
+                if os.path.exists(daily_log_file):
+                    print(f"✅ Daily file exists: {daily_log_file}")
+                else:
+                    print(f"❌ Daily file does not exist: {daily_log_file}")
+                    
+                if os.path.exists(main_log_file):
+                    print(f"✅ Main file exists: {main_log_file}")
+                else:
+                    print(f"❌ Main file does not exist: {main_log_file}")
                 
             except Exception as write_error:
                 print(f"⚠️ Could not write to log file: {write_error}")

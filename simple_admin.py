@@ -141,15 +141,51 @@ def main():
         st.markdown("---")
         st.write(f"**Total Documents:** {total_docs}")
         
-        # Recent activity
-        st.subheader("📈 Recent Activity")
+        # Recent activity with better formatting
+        st.markdown("""
+        <div style='background-color: #1e1e1e; padding: 1rem; border-radius: 10px; margin: 1rem 0;'>
+            <h3 style='color: #ffffff; margin-bottom: 1rem;'>📈 Recent Activity</h3>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Recent User Logins
+        st.markdown("**Recent User Logins:**")
+        recent_logins = config.get_logs("user_logins", limit=5)
+        if recent_logins:
+            for login in recent_logins:
+                data = login.get('data', {})
+                user_email = data.get('user_email', 'Unknown')
+                timestamp = datetime.fromisoformat(login.get('timestamp', '')).strftime('%Y-%m-%d %H:%M:%S')
+                platform = login.get('platform', 'local')
+                st.markdown(f"• **{user_email}** - {timestamp} ({platform})")
+        else:
+            st.write("No recent logins")
+        
+        # Recent Document Uploads
+        st.markdown("\n**Recent Document Uploads:**")
+        recent_uploads = config.get_logs("uploads", limit=5)
+        if recent_uploads:
+            for upload in recent_uploads:
+                data = upload.get('data', {})
+                filename = data.get('filename', 'Unknown')
+                department = data.get('department', 'Unknown')
+                timestamp = datetime.fromisoformat(upload.get('timestamp', '')).strftime('%Y-%m-%d %H:%M:%S')
+                st.markdown(f"• **{filename}** - {department} ({timestamp})")
+        else:
+            st.write("No recent uploads")
+        
+        # Recent Queries
+        st.markdown("\n**Recent Queries:**")
         recent_queries = config.get_logs("queries", limit=5)
         if recent_queries:
             for query in recent_queries:
-                data = query['data']
+                data = query.get('data', {})
                 user_name = data.get('user_name', 'Unknown')
                 question = data.get('question', 'Unknown')[:50]
-                st.write(f"• **{user_name}:** {question}...")
+                department = data.get('department', 'Unknown')
+                platform = query.get('platform', 'local')
+                timestamp = datetime.fromisoformat(query.get('timestamp', '')).strftime('%Y-%m-%d %H:%M:%S')
+                st.markdown(f"• **{user_name}** ({department}) - {timestamp}:\n  _{question}..._")
         else:
             st.write("No recent queries")
     
@@ -611,33 +647,96 @@ def main():
                     st.error(f"❌ Error exporting logs: {str(e)}")
     
     with tab4:
-        st.header("📝 System Logs")
+        st.header("📝 Logs and Activity")
         
-        # Department filter
-        dept_filter = st.selectbox(
-            "Filter by Department",
-            ["All"] + config.DEPARTMENTS,
-            key="log_dept_filter"
-        )
+        # Add log summary section
+        st.markdown("""
+        <div style='background-color: #1e1e1e; padding: 1rem; border-radius: 10px; margin: 1rem 0;'>
+            <h3 style='color: #ffffff; margin-bottom: 1rem;'>📊 Log Summary</h3>
+        </div>
+        """, unsafe_allow_html=True)
         
-        # Log type selection
-        log_type = st.selectbox(
-            "Select Log Type",
-            ["queries", "user_logins", "uploads", "errors"],
-            format_func=lambda x: x.replace("_", " ").title()
-        )
+        # Create summary columns
+        sum_col1, sum_col2, sum_col3, sum_col4 = st.columns(4)
+        
+        # Get summary counts
+        queries = len(config.get_logs("queries", limit=1000))
+        logins = len(config.get_logs("user_logins", limit=1000))
+        uploads = len(config.get_logs("uploads", limit=1000))
+        errors = len(config.get_logs("errors", limit=1000))
+        
+        with sum_col1:
+            st.markdown("""
+            <div style='background-color: #2d2d2d; padding: 1rem; border-radius: 10px; text-align: center;'>
+                <h4 style='color: #4CAF50; margin: 0;'>Queries</h4>
+                <p style='color: #ffffff; font-size: 24px; margin: 10px 0;'>{}</p>
+            </div>
+            """.format(queries), unsafe_allow_html=True)
+            
+        with sum_col2:
+            st.markdown("""
+            <div style='background-color: #2d2d2d; padding: 1rem; border-radius: 10px; text-align: center;'>
+                <h4 style='color: #2196F3; margin: 0;'>Logins</h4>
+                <p style='color: #ffffff; font-size: 24px; margin: 10px 0;'>{}</p>
+            </div>
+            """.format(logins), unsafe_allow_html=True)
+            
+        with sum_col3:
+            st.markdown("""
+            <div style='background-color: #2d2d2d; padding: 1rem; border-radius: 10px; text-align: center;'>
+                <h4 style='color: #FFC107; margin: 0;'>Uploads</h4>
+                <p style='color: #ffffff; font-size: 24px; margin: 10px 0;'>{}</p>
+            </div>
+            """.format(uploads), unsafe_allow_html=True)
+            
+        with sum_col4:
+            st.markdown("""
+            <div style='background-color: #2d2d2d; padding: 1rem; border-radius: 10px; text-align: center;'>
+                <h4 style='color: #F44336; margin: 0;'>Errors</h4>
+                <p style='color: #ffffff; font-size: 24px; margin: 10px 0;'>{}</p>
+            </div>
+            """.format(errors), unsafe_allow_html=True)
+        
+        st.markdown("---")
+        
+        # Create columns for log type selection
+        col1, col2, col3 = st.columns([2, 1, 1])
+        
+        with col1:
+            log_type = st.selectbox(
+                "Select Log Type",
+                ["queries", "user_logins", "uploads", "errors", "system"],
+                key="log_type"
+            )
+        
+        with col2:
+            department = st.selectbox(
+                "Filter by Department",
+                ["All"] + config.DEPARTMENTS,
+                key="log_dept_filter"
+            )
+            
+        with col3:
+            limit = st.number_input(
+                "Number of Logs",
+                min_value=5,
+                max_value=100,
+                value=20,
+                step=5,
+                key="log_limit"
+            )
         
         # Get logs
         all_logs = config.get_logs(log_type, limit=100)
         
         # Filter by department if needed
-        if dept_filter != "All":
-            logs = [log for log in all_logs if log['data'].get('department') == dept_filter]
+        if department != "All":
+            logs = [log for log in all_logs if log['data'].get('department') == department]
         else:
             logs = all_logs
         
         if logs:
-            st.write(f"**{len(logs)} {log_type} found for {dept_filter} department:**")
+            st.write(f"**{len(logs)} {log_type} found for {department} department:**")
             
             for i, log in enumerate(reversed(logs)):  # Show newest first
                 data = log['data']
@@ -681,17 +780,58 @@ def main():
                         st.json(data)
                         
             # Export filtered logs
-            if st.button("📥 Export Filtered Logs"):
-                import json
-                log_json = json.dumps(logs, indent=2)
-                st.download_button(
-                    label="Download JSON",
-                    data=log_json,
-                    file_name=f"logs_{dept_filter}_{log_type}_{datetime.now().strftime('%Y%m%d_%H%M')}.json",
-                    mime="application/json"
-                )
+            st.markdown("""
+            <div style='background-color: #1e1e1e; padding: 1rem; border-radius: 10px; margin: 1rem 0;'>
+                <h3 style='color: #ffffff; margin-bottom: 1rem;'>📥 Export Options</h3>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            export_col1, export_col2 = st.columns(2)
+            
+            with export_col1:
+                if st.button("Export Current View", key="export_current"):
+                    import pandas as pd
+                    df = pd.json_normalize(logs)
+                    st.download_button(
+                        label="Download Current View CSV",
+                        data=df.to_csv(index=False).encode('utf-8'),
+                        file_name=f"{log_type}_logs_{datetime.now().strftime('%Y%m%d')}.csv",
+                        mime='text/csv'
+                    )
+            
+            with export_col2:
+                if st.button("Export All Logs", key="export_all"):
+                    # Get all logs for all activity types
+                    all_logs = config.export_all_logs(department if department != "All" else None)
+                    
+                    if any(all_logs.values()):
+                        # Create a zip file containing CSVs for each log type
+                        import io
+                        import zipfile
+                        
+                        zip_buffer = io.BytesIO()
+                        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+                            for log_type, logs in all_logs.items():
+                                if logs:  # Only include non-empty logs
+                                    df = pd.json_normalize(logs)
+                                    csv_buffer = io.StringIO()
+                                    df.to_csv(csv_buffer, index=False)
+                                    zip_file.writestr(
+                                        f"{log_type}_logs_{datetime.now().strftime('%Y%m%d')}.csv",
+                                        csv_buffer.getvalue()
+                                    )
+                        
+                        # Offer the zip file for download
+                        st.download_button(
+                            label="Download All Logs (ZIP)",
+                            data=zip_buffer.getvalue(),
+                            file_name=f"all_logs_{datetime.now().strftime('%Y%m%d')}.zip",
+                            mime="application/zip"
+                        )
+                    else:
+                        st.warning("No logs available to export")
         else:
-            st.info(f"No {log_type} found for {dept_filter} department")
+            st.info(f"No {log_type} found for {department} department")
 
 if __name__ == "__main__":
     main()

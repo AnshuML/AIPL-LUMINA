@@ -265,148 +265,148 @@ def main():
                 rag_pipeline = get_rag_pipeline()
                 
                 # Search for relevant chunks
-                search_results = rag_pipeline.search(prompt, department=department, top_k=5)
-                    
-                    if search_results:
-                        # Prepare context
-                        context = "\n\n".join([result["text"] for result in search_results])
-                        
-                        # Generate response
-                        print(f"🔍 DEBUG: Generating response for query: {prompt[:50]}...")
-                        response_data = llm_handler.generate_answer(
-                            query=prompt,
-                            context_chunks=search_results,
-                            department=department,
-                            language=language
-                        )
-                        response = response_data.get('answer', 'Sorry, I could not generate a response.')
-                        print(f"🔍 DEBUG: Generated response: {response[:100]}...")
-                        
-                        # Log the query with complete user information
-                        try:
-                            query_data = {
-                                "user_email": st.session_state.get("user_email", "unknown"),
-                                "user_name": st.session_state.get("user_name", "unknown"),
-                                "question": prompt,
-                                "answer": response,
-                                "department": department,
-                                "language": language,
-                                "chunks_used": len(search_results),
-                                "sources": [result["metadata"]["filename"] for result in search_results],
-                                "confidence": response_data.get('confidence', 'medium'),
-                                "response_time_seconds": response_data.get('response_time', 0),
-                                "model_used": response_data.get('model_used', 'gpt-4'),
-                                "timestamp": datetime.now().isoformat()
-                            }
-                            
-                            # Debug: Print query data
-                            print(f"🔍 DEBUG: Attempting to log query for {query_data['user_email']}")
-                            print(f"🔍 DEBUG: Question: {query_data['question'][:50]}...")
-                            
-                            # Force logging
-                            config.log_activity("queries", query_data)
-                            print(f"✅ Query logged successfully for {st.session_state.get('user_email', 'unknown')}")
-                            
-                            # Verify log was written
-                            logs = config.get_logs("queries", limit=5)
-                            print(f"🔍 DEBUG: Total queries in log: {len(logs)}")
-                            
-                            # Force refresh admin panel
-                            st.rerun()
-                            
-                        except Exception as e:
-                            print(f"❌ Error logging query: {e}")
-                            import traceback
-                            traceback.print_exc()
-                        
-                        # Display response
-                        print(f"🔍 DEBUG: About to display response: {response[:100]}...")
-                        with st.chat_message("assistant"):
-                            st.write(response)
-                        print(f"✅ DEBUG: Response displayed successfully")
-                        
-                        # Add response to session state
-                        st.session_state.messages.append({"role": "assistant", "content": response})
-                        
-                        # Show sources
-                        if search_results:
-                            with st.expander("📚 Sources"):
-                                for i, result in enumerate(search_results, 1):
-                                    st.write(f"**{i}.** {result['metadata']['filename']} (Score: {result['score']:.3f})")
-                                    st.write(f"*{result['text'][:200]}...*")
-                                    st.write("---")
-                    else:
-                        # No relevant chunks found
-                        response = "I couldn't find relevant information in the uploaded documents. Please make sure documents are uploaded for this department or try rephrasing your question."
-                        print(f"🔍 DEBUG: No chunks found, using default response: {response[:100]}...")
-                        with st.chat_message("assistant"):
-                            st.write(response)
-                        print(f"✅ DEBUG: No chunks response displayed successfully")
-                        
-                        # Add response to session state
-                        st.session_state.messages.append({"role": "assistant", "content": response})
-                        
-                        # Log the query with complete user information
-                        try:
-                            query_data = {
-                                "user_email": st.session_state.get("user_email", "unknown"),
-                                "user_name": st.session_state.get("user_name", "unknown"),
-                                "question": prompt,
-                                "answer": response,
-                                "department": department,
-                                "language": language,
-                                "chunks_used": 0,
-                                "sources": [],
-                                "confidence": "low",
-                                "response_time_seconds": 0,
-                                "model_used": "none",
-                                "timestamp": datetime.now().isoformat()
-                            }
-                            
-                            # Debug: Print query data
-                            print(f"🔍 DEBUG: Attempting to log query for {query_data['user_email']}")
-                            print(f"🔍 DEBUG: Question: {query_data['question'][:50]}...")
-                            
-                            # Force logging
-                            config.log_activity("queries", query_data)
-                            print(f"✅ Query logged successfully for {st.session_state.get('user_email', 'unknown')}")
-                            
-                            # Verify log was written
-                            logs = config.get_logs("queries", limit=5)
-                            print(f"🔍 DEBUG: Total queries in log: {len(logs)}")
-                            
-                            # Force refresh admin panel
-                            st.rerun()
-                            
-                        except Exception as e:
-                            print(f"❌ Error logging query: {e}")
-                            import traceback
-                            traceback.print_exc()
+                search_results = rag_pipeline.search(prompt, department=department, top_k=3)
                 
-                except Exception as e:
-                    error_msg = f"Sorry, I encountered an error: {str(e)}"
-                    print(f"🔍 DEBUG: Error occurred: {error_msg}")
-                    with st.chat_message("assistant"):
-                        st.write(f"❌ {error_msg}")
-                    print(f"Error processing query: {e}")
+                if search_results:
+                    # Prepare context
+                    context = "\n\n".join([result["text"] for result in search_results])
                     
-                    # Add error message to session state
-                    st.session_state.messages.append({"role": "assistant", "content": error_msg})
+                    # Generate response
+                    print(f"🔍 DEBUG: Generating response for query: {prompt[:50]}...")
+                    response_data = llm_handler.generate_answer(
+                        query=prompt,
+                        context_chunks=search_results,
+                        department=department,
+                        language=language
+                    )
+                    response = response_data.get('answer', 'Sorry, I could not generate a response.')
+                    print(f"🔍 DEBUG: Generated response: {response[:100]}...")
                     
-                    # Log the error with complete user information
+                    # Log the query with complete user information
                     try:
-                        config.log_activity("errors", {
+                        query_data = {
                             "user_email": st.session_state.get("user_email", "unknown"),
                             "user_name": st.session_state.get("user_name", "unknown"),
                             "question": prompt,
-                            "error": str(e),
+                            "answer": response,
                             "department": department,
                             "language": language,
+                            "chunks_used": len(search_results),
+                            "sources": [result["metadata"]["filename"] for result in search_results],
+                            "confidence": response_data.get('confidence', 'medium'),
+                            "response_time_seconds": response_data.get('response_time', 0),
+                            "model_used": response_data.get('model_used', 'gpt-4'),
                             "timestamp": datetime.now().isoformat()
-                        })
-                        print(f"✅ Error logged successfully for {st.session_state.get('user_email', 'unknown')}")
-                    except Exception as log_error:
-                        print(f"❌ Error logging error: {log_error}")
+                        }
+                        
+                        # Debug: Print query data
+                        print(f"🔍 DEBUG: Attempting to log query for {query_data['user_email']}")
+                        print(f"🔍 DEBUG: Question: {query_data['question'][:50]}...")
+                        
+                        # Force logging
+                        config.log_activity("queries", query_data)
+                        print(f"✅ Query logged successfully for {st.session_state.get('user_email', 'unknown')}")
+                        
+                        # Verify log was written
+                        logs = config.get_logs("queries", limit=5)
+                        print(f"🔍 DEBUG: Total queries in log: {len(logs)}")
+                        
+                        # Force refresh admin panel
+                        st.rerun()
+                        
+                    except Exception as e:
+                        print(f"❌ Error logging query: {e}")
+                        import traceback
+                        traceback.print_exc()
+                    
+                    # Display response
+                    print(f"🔍 DEBUG: About to display response: {response[:100]}...")
+                    with st.chat_message("assistant"):
+                        st.write(response)
+                    print(f"✅ DEBUG: Response displayed successfully")
+                    
+                    # Add response to session state
+                    st.session_state.messages.append({"role": "assistant", "content": response})
+                    
+                    # Show sources
+                    if search_results:
+                        with st.expander("📚 Sources"):
+                            for i, result in enumerate(search_results, 1):
+                                st.write(f"**{i}.** {result['metadata']['filename']} (Score: {result['score']:.3f})")
+                                st.write(f"*{result['text'][:200]}...*")
+                                st.write("---")
+                else:
+                    # No relevant chunks found
+                    response = "I couldn't find relevant information in the uploaded documents. Please make sure documents are uploaded for this department or try rephrasing your question."
+                    print(f"🔍 DEBUG: No chunks found, using default response: {response[:100]}...")
+                    with st.chat_message("assistant"):
+                        st.write(response)
+                    print(f"✅ DEBUG: No chunks response displayed successfully")
+                    
+                    # Add response to session state
+                    st.session_state.messages.append({"role": "assistant", "content": response})
+                    
+                    # Log the query with complete user information
+                    try:
+                        query_data = {
+                            "user_email": st.session_state.get("user_email", "unknown"),
+                            "user_name": st.session_state.get("user_name", "unknown"),
+                            "question": prompt,
+                            "answer": response,
+                            "department": department,
+                            "language": language,
+                            "chunks_used": 0,
+                            "sources": [],
+                            "confidence": "low",
+                            "response_time_seconds": 0,
+                            "model_used": "none",
+                            "timestamp": datetime.now().isoformat()
+                        }
+                        
+                        # Debug: Print query data
+                        print(f"🔍 DEBUG: Attempting to log query for {query_data['user_email']}")
+                        print(f"🔍 DEBUG: Question: {query_data['question'][:50]}...")
+                        
+                        # Force logging
+                        config.log_activity("queries", query_data)
+                        print(f"✅ Query logged successfully for {st.session_state.get('user_email', 'unknown')}")
+                        
+                        # Verify log was written
+                        logs = config.get_logs("queries", limit=5)
+                        print(f"🔍 DEBUG: Total queries in log: {len(logs)}")
+                        
+                        # Force refresh admin panel
+                        st.rerun()
+                        
+                    except Exception as e:
+                        print(f"❌ Error logging query: {e}")
+                        import traceback
+                        traceback.print_exc()
+                
+            except Exception as e:
+                error_msg = f"Sorry, I encountered an error: {str(e)}"
+                print(f"🔍 DEBUG: Error occurred: {error_msg}")
+                with st.chat_message("assistant"):
+                    st.write(f"❌ {error_msg}")
+                print(f"Error processing query: {e}")
+                
+                # Add error message to session state
+                st.session_state.messages.append({"role": "assistant", "content": error_msg})
+                
+                # Log the error with complete user information
+                try:
+                    config.log_activity("errors", {
+                        "user_email": st.session_state.get("user_email", "unknown"),
+                        "user_name": st.session_state.get("user_name", "unknown"),
+                        "question": prompt,
+                        "error": str(e),
+                        "department": department,
+                        "language": language,
+                        "timestamp": datetime.now().isoformat()
+                    })
+                    print(f"✅ Error logged successfully for {st.session_state.get('user_email', 'unknown')}")
+                except Exception as log_error:
+                    print(f"❌ Error logging error: {log_error}")
         
         # Session state is now managed within each response section
         # No need for this additional management

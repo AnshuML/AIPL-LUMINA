@@ -229,11 +229,65 @@ def main():
     department = st.session_state.get("department", "HR")
     language = st.session_state.get("language", "en")
     
-    # Header
-    st.markdown("""
-    <div class="main-header">
-        <h1>Welcome To AIPL Lumina</h1>
-        <p style="font-size: 1.2em; margin-top: 1rem;">Your Intelligent Assistant for Company Policies and Procedures</p>
+    # Dynamic greeting based on time
+    from datetime import datetime
+    current_hour = datetime.now().hour
+    if 5 <= current_hour < 12:
+        greeting = "Good morning!"
+    elif 12 <= current_hour < 17:
+        greeting = "Good afternoon!"
+    elif 17 <= current_hour < 21:
+        greeting = "Good evening!"
+    else:
+        greeting = "Good night!"
+    
+    # Welcome Screen - Enhanced Design
+    st.markdown(f"""
+    <div style="
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 60vh;
+        padding: 2rem;
+    ">
+        <div style="
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            border-radius: 25px;
+            padding: 3rem 4rem;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            max-width: 500px;
+            width: 100%;
+        ">
+            <h1 style="
+                font-size: 3.5rem;
+                font-weight: bold;
+                color: #ffffff;
+                margin: 0 0 1rem 0;
+                text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            ">AIPL Lumina</h1>
+            
+            <p style="
+                font-size: 1.4rem;
+                color: #ff6b9d;
+                margin: 0 0 1.5rem 0;
+                font-weight: 600;
+                text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            ">AIPL Group</p>
+            
+            <p style="
+                font-size: 1.3rem;
+                color: #ffd700;
+                margin: 0;
+                font-weight: 500;
+                text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            ">{greeting}</p>
+        </div>
     </div>
     """, unsafe_allow_html=True)
     

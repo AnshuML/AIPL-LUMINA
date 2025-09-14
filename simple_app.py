@@ -31,8 +31,18 @@ if os.path.exists('/mount/src'):
 # Import simple configuration
 from simple_config import config
 from simple_rag_pipeline import get_rag_pipeline
-from enhanced_rag_pipeline import process_query_enhanced, BM25_AVAILABLE, CROSS_ENCODER_AVAILABLE
 from utils.llm_handler import llm_handler
+
+# Import enhanced RAG pipeline with error handling
+try:
+    from enhanced_rag_pipeline import process_query_enhanced, BM25_AVAILABLE, CROSS_ENCODER_AVAILABLE
+    ENHANCED_RAG_AVAILABLE = True
+except ImportError:
+    print("Warning: Enhanced RAG pipeline not available, falling back to simple pipeline")
+    process_query_enhanced = None
+    BM25_AVAILABLE = False
+    CROSS_ENCODER_AVAILABLE = False
+    ENHANCED_RAG_AVAILABLE = False
 
 # Setup directories
 config.setup_directories()
@@ -197,6 +207,9 @@ def main():
     # Main chat interface
     
     # Initialize session state
+    if "session_id" not in st.session_state:
+        st.session_state.session_id = f"{int(time.time())}_{hash(user_email)}"
+        
     if "messages" not in st.session_state:
         st.session_state.messages = []
     
@@ -269,119 +282,138 @@ def main():
                 
                 # Log the query with complete user information
                 try:
-                    query_data = {
-                        "user_email": st.session_state.get("user_email", "unknown"),
-                        "user_name": st.session_state.get("user_name", "unknown"),
-                        "question": prompt,
-                        "answer": response,
-                        "department": department,
-                        "language": language,
-                        "chunks_used": response_data.get('chunks_used', 0),
-                        "sources": response_data.get('sources', []),
-                        "confidence": response_data.get('confidence', 'medium'),
-                        "response_time_seconds": response_data.get('response_time', 0),
-                        "model_used": response_data.get('model_used', 'gpt-4'),
-                        "timestamp": datetime.now().isoformat(),
-                        "enhanced_processing": True
-                    }
-                    
-                    # Debug: Print query data
-                    print(f"🔍 DEBUG: Attempting to log query for {query_data['user_email']}")
-                    print(f"🔍 DEBUG: Question: {query_data['question'][:50]}...")
-                    
-                    # Force logging
-                    config.log_activity("queries", query_data)
-                    print(f"✅ Query logged successfully for {st.session_state.get('user_email', 'unknown')}")
-                    
-                    # Verify log was written
-                    logs = config.get_logs("queries", limit=5)
-                    print(f"🔍 DEBUG: Total queries in log: {len(logs)}")
-                    
-                    # Force refresh admin panel
-                    # st.rerun()  # Commented out to prevent page refresh
-                    
+                    # Get client IP and user agent
+                    client_ip = st.get_client_ip() if hasattr(st, 'get_client_ip') else 'unknown'
+                    user_agent = st.get_user_agent() if hasattr(st, 'get_user_agent') else 'unknown'
                 except Exception as e:
-                    print(f"❌ Error logging query: {e}")
-                    import traceback
-                    traceback.print_exc()
-            
-                # Display response
-                print(f"🔍 DEBUG: About to display response: {response[:100]}...")
+                    print(f"❌ Error getting client info: {e}")
+                    client_ip = 'unknown'
+                    user_agent = 'unknown'
                 
-                # Create a container for the response
-                with st.container():
-                    st.markdown("**🤖 Assistant:**")
-                    st.markdown(response)
-                    st.markdown("---")
+                query_data = {
+                    "user_email": st.session_state.get("user_email", "unknown"),
+                    "user_name": st.session_state.get("user_name", "unknown"),
+                    "question": prompt,
+                    "answer": response,
+                    "department": department,
+                    "language": language,
+                    "chunks_used": response_data.get('chunks_used', 0),
+                    "sources": response_data.get('sources', []),
+                    "confidence": response_data.get('confidence', 'medium'),
+                    "response_time_seconds": response_data.get('response_time', 0),
+                    "model_used": response_data.get('model_used', 'gpt-4'),
+                    "timestamp": datetime.now().isoformat(),
+                    "enhanced_processing": True,
+                    "session_id": st.session_state.session_id,
+                    "user_ip": client_ip,
+                    "platform": {
+                        "type": "web",
+                        "user_agent": user_agent
+                    },
+                    "context": {
+                        "total_messages": len(st.session_state.messages),
+                        "session_duration": time.time() - float(st.session_state.session_id.split('_')[0])
+                    }
+                }
+                    
+                # Debug: Print query data
+                print(f"🔍 DEBUG: Attempting to log query for {query_data['user_email']}")
+                print(f"🔍 DEBUG: Question: {query_data['question'][:50]}...")
                 
-                print(f"✅ DEBUG: Response displayed successfully")
+                # Force logging
+                config.log_activity("queries", query_data)
+                print(f"✅ Query logged successfully for {st.session_state.get('user_email', 'unknown')}")
                 
-                # Add response to session state
-                st.session_state.messages.append({"role": "assistant", "content": response})
-            
-                # Show sources
-                sources = response_data.get('sources', [])
-                if sources:
-                    with st.expander("📚 Sources"):
-                        for i, source in enumerate(sources, 1):
-                            st.write(f"**{i}.** {source}")
-                        st.write(f"**Chunks Used:** {response_data.get('chunks_used', 0)}")
-                        st.write(f"**Confidence:** {response_data.get('confidence', 'Unknown')}")
-                else:
-                    # No relevant chunks found
-                    response = "I couldn't find relevant information in the uploaded documents. Please make sure documents are uploaded for this department or try rephrasing your question."
-                    print(f"🔍 DEBUG: No chunks found, using default response: {response[:100]}...")
-                    
-                    # Create a container for the response
-                    with st.container():
-                        st.markdown("**🤖 Assistant:**")
-                        st.markdown(response)
-                        st.markdown("---")
-                    
-                    print(f"✅ DEBUG: No chunks response displayed successfully")
-                    
-                    # Add response to session state
-                    st.session_state.messages.append({"role": "assistant", "content": response})
-            
-                    # Log the query with complete user information
-                    try:
-                        query_data = {
-                            "user_email": st.session_state.get("user_email", "unknown"),
-                            "user_name": st.session_state.get("user_name", "unknown"),
-                            "question": prompt,
-                            "answer": response,
-                            "department": department,
-                            "language": language,
-                            "chunks_used": 0,
-                            "sources": [],
-                            "confidence": "low",
-                            "response_time_seconds": 0,
-                            "model_used": "none",
-                            "timestamp": datetime.now().isoformat()
-                        }
-                        
-                        # Debug: Print query data
-                        print(f"🔍 DEBUG: Attempting to log query for {query_data['user_email']}")
-                        print(f"🔍 DEBUG: Question: {query_data['question'][:50]}...")
-                        
-                        # Force logging
-                        config.log_activity("queries", query_data)
-                        print(f"✅ Query logged successfully for {st.session_state.get('user_email', 'unknown')}")
-                        
-                        # Verify log was written
-                        logs = config.get_logs("queries", limit=5)
-                        print(f"🔍 DEBUG: Total queries in log: {len(logs)}")
-                        
-                        # Force refresh admin panel
-                        # st.rerun()  # Commented out to prevent page refresh
-                        
-                    except Exception as e:
-                        print(f"❌ Error logging query: {e}")
-                        import traceback
-                        traceback.print_exc()
-        
+                # Verify log was written
+                logs = config.get_logs("queries", limit=5)
+                print(f"🔍 DEBUG: Total queries in log: {len(logs)}")
+                
+                # Force refresh admin panel
+                # st.rerun()  # Commented out to prevent page refresh
+                
         except Exception as e:
-            error_msg = f"Sorry, I encountered an error: {str(e)}"
+            print(f"❌ Error logging query: {e}")
+            import traceback
+            traceback.print_exc()
+            
+        # Display response
+        print(f"🔍 DEBUG: About to display response: {response[:100]}...")
+        
+        # Create a container for the response
+        with st.container():
+            st.markdown("**🤖 Assistant:**")
+            st.markdown(response)
+            st.markdown("---")
+        
+        print(f"✅ DEBUG: Response displayed successfully")
+        
+        # Add response to session state
+        st.session_state.messages.append({"role": "assistant", "content": response})
+    
+        # Show sources
+        sources = response_data.get('sources', [])
+        if sources:
+            with st.expander("📚 Sources"):
+                for i, source in enumerate(sources, 1):
+                    st.write(f"**{i}.** {source}")
+                st.write(f"**Chunks Used:** {response_data.get('chunks_used', 0)}")
+                st.write(f"**Confidence:** {response_data.get('confidence', 'Unknown')}")
+        else:
+            # No relevant chunks found
+            response = "I couldn't find relevant information in the uploaded documents. Please make sure documents are uploaded for this department or try rephrasing your question."
+            print(f"🔍 DEBUG: No chunks found, using default response: {response[:100]}...")
+            
+            # Create a container for the response
+            with st.container():
+                st.markdown("**🤖 Assistant:**")
+                st.markdown(response)
+                st.markdown("---")
+            
+            print(f"✅ DEBUG: No chunks response displayed successfully")
+            
+            # Add response to session state
+            st.session_state.messages.append({"role": "assistant", "content": response})
+            
+            # Log the query with complete user information
+            try:
+                query_data = {
+                    "user_email": st.session_state.get("user_email", "unknown"),
+                    "user_name": st.session_state.get("user_name", "unknown"),
+                    "question": prompt,
+                    "answer": response,
+                    "department": department,
+                    "language": language,
+                    "chunks_used": 0,
+                    "sources": [],
+                    "confidence": "low",
+                    "response_time_seconds": 0,
+                    "model_used": "none",
+                    "timestamp": datetime.now().isoformat()
+                }
+                
+                # Debug: Print query data
+                print(f"🔍 DEBUG: Attempting to log query for {query_data['user_email']}")
+                print(f"🔍 DEBUG: Question: {query_data['question'][:50]}...")
+                
+                # Force logging
+                config.log_activity("queries", query_data)
+                print(f"✅ Query logged successfully for {st.session_state.get('user_email', 'unknown')}")
+                
+                # Verify log was written
+                logs = config.get_logs("queries", limit=5)
+                print(f"🔍 DEBUG: Total queries in log: {len(logs)}")
+                
+                # Force refresh admin panel
+                # st.rerun()  # Commented out to prevent page refresh
+                
+            except Exception as e:
+                print(f"❌ Error logging query: {e}")
+                import traceback
+                traceback.print_exc()
+        
+            except Exception as e:
+            # Handle any exceptions that occur during query processing
+               error_msg = f"Sorry, I encountered an error: {str(e)}"
             print(f"🔍 DEBUG: Error occurred: {error_msg}")
         
             # Create a container for the error response
@@ -409,9 +441,9 @@ def main():
                 print(f"✅ Error logged successfully for {st.session_state.get('user_email', 'unknown')}")
             except Exception as log_error:
                 print(f"❌ Error logging error: {log_error}")
-        
-        # Session state is now managed within each response section
-        # No need for this additional management
+    
+    # Session state is now managed within each response section
+    # No need for this additional management
     
     # Footer
     st.markdown("---")

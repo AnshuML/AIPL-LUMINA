@@ -47,17 +47,39 @@ class SimpleConfig:
     
     @classmethod
     def setup_directories(cls):
-        """Create necessary directories"""
-        for directory in [cls.DOCUMENTS_DIR, cls.LOGS_DIR, cls.INDEX_DIR]:
-            try:
+        """Create necessary directories with enhanced structure"""
+        try:
+            # Create main directories
+            for directory in [cls.DOCUMENTS_DIR, cls.LOGS_DIR, cls.INDEX_DIR]:
                 os.makedirs(directory, exist_ok=True)
+                
                 # Create department subdirectories
                 for dept in cls.DEPARTMENTS:
                     dept_dir = os.path.join(directory, dept)
                     os.makedirs(dept_dir, exist_ok=True)
-            except Exception as e:
-                print(f"Warning: Could not create directory {directory}: {e}")
-                # Continue with other directories
+                    
+                    # Create log type subdirectories in each department
+                    if directory == cls.LOGS_DIR:
+                        # Create a 'general' directory for non-department specific logs
+                        general_dir = os.path.join(directory, 'general')
+                        os.makedirs(general_dir, exist_ok=True)
+                        
+                        # Create archive directory for rotated logs
+                        archive_dir = os.path.join(dept_dir, 'archive')
+                        os.makedirs(archive_dir, exist_ok=True)
+                        
+                        # Create directories for different log types
+                        log_types = ['queries', 'uploads', 'user_logins', 'errors', 'system']
+                        for log_type in log_types:
+                            log_type_dir = os.path.join(dept_dir, log_type)
+                            os.makedirs(log_type_dir, exist_ok=True)
+            
+            print("✅ Directory setup completed successfully")
+            
+        except Exception as e:
+            print(f"Error: Could not create directories: {e}")
+            import traceback
+            traceback.print_exc()
     
     @classmethod
     def get_documents(cls, department: str = None) -> List[Dict]:
@@ -94,16 +116,31 @@ class SimpleConfig:
     
     @classmethod
     def log_activity(cls, activity_type: str, data: Dict):
-        """Log activity to JSON file"""
+        """Enhanced log activity to JSON file with better organization"""
         try:
-            # Ensure logs directory exists
+            # Ensure logs directory exists with department subdirectories
             os.makedirs(cls.LOGS_DIR, exist_ok=True)
+            for dept in cls.DEPARTMENTS:
+                os.makedirs(os.path.join(cls.LOGS_DIR, dept), exist_ok=True)
             
-            log_file = os.path.join(cls.LOGS_DIR, f"{activity_type}.json")
+            # Determine department from data or use 'general'
+            department = data.get('department', 'general').upper()
+            if department not in cls.DEPARTMENTS:
+                department = 'general'
             
-            # Debug print
-            print(f"🔍 DEBUG: Logging {activity_type} to {log_file}")
-            print(f"🔍 DEBUG: Data: {data}")
+            # Create department-specific log file
+            log_dir = os.path.join(cls.LOGS_DIR, department)
+            log_file = os.path.join(log_dir, f"{activity_type}.json")
+            
+            # Add additional metadata
+            log_entry = {
+                "timestamp": datetime.now().isoformat(),
+                "activity_type": activity_type,
+                "department": department,
+                "user_ip": data.get('user_ip', 'unknown'),
+                "session_id": data.get('session_id', 'unknown'),
+                "data": data
+            }
             
             # Load existing logs
             logs = []
@@ -111,29 +148,27 @@ class SimpleConfig:
                 try:
                     with open(log_file, 'r', encoding='utf-8') as f:
                         logs = json.load(f)
-                    print(f"🔍 DEBUG: Loaded {len(logs)} existing logs")
                 except Exception as load_error:
-                    print(f"🔍 DEBUG: Error loading existing logs: {load_error}")
-                    logs = []
+                    print(f"Warning: Error loading existing logs: {load_error}")
             
             # Add new log entry
-            log_entry = {
-                "timestamp": datetime.now().isoformat(),
-                "data": data
-            }
             logs.append(log_entry)
-            print(f"🔍 DEBUG: Added new log entry, total logs: {len(logs)}")
             
-            # Save logs
-            with open(log_file, 'w', encoding='utf-8') as f:
+            # Save logs with daily rotation
+            today = datetime.now().strftime('%Y-%m-%d')
+            rotated_log_file = os.path.join(log_dir, f"{activity_type}_{today}.json")
+            
+            with open(rotated_log_file, 'w', encoding='utf-8') as f:
                 json.dump(logs, f, indent=2, ensure_ascii=False)
-            print(f"✅ DEBUG: Successfully saved {len(logs)} logs to {log_file}")
+            
+            # Update latest log file
+            with open(log_file, 'w', encoding='utf-8') as f:
+                json.dump(logs[-1000:], f, indent=2, ensure_ascii=False)  # Keep last 1000 entries in current file
             
         except Exception as e:
-            print(f"❌ ERROR: Could not log activity: {e}")
+            print(f"Error: Could not log activity: {e}")
             import traceback
             traceback.print_exc()
-            # Continue without logging
     
     @classmethod
     def get_logs(cls, activity_type: str, limit: int = 100) -> List[Dict]:

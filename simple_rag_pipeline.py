@@ -7,11 +7,19 @@ import pickle
 import numpy as np
 from typing import List, Dict, Any, Tuple, Optional
 from datetime import datetime
-import faiss
 import logging
 
 # Import logger first
 logger = logging.getLogger(__name__)
+
+# Handle optional dependencies
+try:
+    import faiss
+    FAISS_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"FAISS not available: {e}")
+    faiss = None
+    FAISS_AVAILABLE = False
 
 try:
     from rank_bm25 import BM25Okapi
@@ -26,54 +34,75 @@ try:
     CROSS_ENCODER_AVAILABLE = True
     logger.info("CrossEncoder imported successfully")
 except ImportError as e:
-    logger.warning(f"CrossEncoder not available (ImportError): {e}")
-    CrossEncoder = None
-    CROSS_ENCODER_AVAILABLE = False
-except Exception as e:
-    logger.warning(f"CrossEncoder not available (Exception): {e}")
+    logger.warning(f"CrossEncoder not available: {e}")
     CrossEncoder = None
     CROSS_ENCODER_AVAILABLE = False
 
-import openai
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_openai import OpenAIEmbeddings
+try:
+    from langchain.text_splitter import RecursiveCharacterTextSplitter
+    from langchain_openai import OpenAIEmbeddings
+    LANGCHAIN_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"Langchain components not available: {e}")
+    RecursiveCharacterTextSplitter = None
+    OpenAIEmbeddings = None
+    LANGCHAIN_AVAILABLE = False
+
+try:
+    import openai
+    OPENAI_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"OpenAI not available: {e}")
+    openai = None
+    OPENAI_AVAILABLE = False
 from simple_config import config
 
 class SimpleRAGPipeline:
     def __init__(self):
         self.config = config.RAG_CONFIG
         
-        # Check if OpenAI API key is available
-        api_key = self._get_openai_api_key()
-        if not api_key:
-            logger.warning("OpenAI API key not found. RAG pipeline will be limited to text search only.")
-            self.embedding_model = None
-        else:
-            self.embedding_model = OpenAIEmbeddings(
-                model=self.config.get("embedding_model", "text-embedding-3-large"),
-                openai_api_key=api_key
-            )
+        # Check dependencies
+        if not all([FAISS_AVAILABLE, LANGCHAIN_AVAILABLE, OPENAI_AVAILABLE]):
+            logger.warning("Some required dependencies are not available. RAG pipeline will have limited functionality.")
+        
+        # Initialize embedding model if dependencies are available
+        self.embedding_model = None
+        if OPENAI_AVAILABLE and LANGCHAIN_AVAILABLE:
+            api_key = self._get_openai_api_key()
+            if api_key:
+                try:
+                    self.embedding_model = OpenAIEmbeddings(
+                        model=self.config.get("embedding_model", "text-embedding-3-large"),
+                        openai_api_key=api_key
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to initialize embedding model: {e}")
+            else:
+                logger.warning("OpenAI API key not found. RAG pipeline will be limited to text search only.")
         
         # Initialize cross-encoder for re-ranking
         self.reranker = None
-        if CROSS_ENCODER_AVAILABLE and CrossEncoder is not None:
+        if CROSS_ENCODER_AVAILABLE:
             try:
-                # Try to load a lightweight cross-encoder
                 self.reranker = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')
                 logger.info("CrossEncoder loaded successfully")
             except Exception as e:
                 logger.warning(f"Failed to load CrossEncoder: {e}")
-                self.reranker = None
-        else:
-            logger.info("CrossEncoder not available, using basic search only")
         
-        # Initialize text splitter
-        self.text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=self.config.get("chunk_size", 400),
-            chunk_overlap=self.config.get("chunk_overlap", 80),
-            length_function=len,
-            separators=["\n\n", "\n", " ", ""]
-        )
+        # Initialize text splitter if available
+        self.text_splitter = None
+        if LANGCHAIN_AVAILABLE:
+            try:
+                self.text_splitter = RecursiveCharacterTextSplitter(
+                    chunk_size=self.config.get("chunk_size", 400),
+                    chunk_overlap=self.config.get("chunk_overlap", 80),
+                    length_function=len,
+                    separators=["\n\n", "\n", " ", ""]
+                )
+            except Exception as e:
+                logger.warning(f"Failed to initialize text splitter: {e}")
+        else:
+            logger.warning("Text splitter not available. Document processing will be limited.")
         
         # Initialize indices
         self.faiss_index = None
@@ -81,8 +110,12 @@ class SimpleRAGPipeline:
         self.chunk_texts = []
         self.chunk_metadata = []
         
-        # Load or create indices
-        self._load_or_create_indices()
+        # Load or create indices if dependencies are available
+        if FAISS_AVAILABLE:
+            self._load_or_create_indices()
+        else:
+            logger.warning("FAISS not available. Vector search will be disabled.")
+            # Initialize simple text-based search only
     
     def _get_openai_api_key(self):
         """Get OpenAI API key from multiple sources"""
@@ -103,6 +136,10 @@ class SimpleRAGPipeline:
     
     def _load_or_create_indices(self):
         """Load existing indices or create new ones"""
+        if not FAISS_AVAILABLE:
+            logger.warning("FAISS not available. Vector search will be disabled.")
+            return
+            
         faiss_path = self.config.get("faiss_path", "index/faiss_index")
         bm25_path = self.config.get("bm25_path", "index/bm25.pkl")
         
@@ -119,8 +156,11 @@ class SimpleRAGPipeline:
         else:
             logger.info("No existing indices found, creating new ones...")
         
-        # Create new indices if loading failed or doesn't exist
-        self._create_new_indices()
+        # Create new indices if loading failed or doesn't exist and dependencies are available
+        if all([FAISS_AVAILABLE, LANGCHAIN_AVAILABLE, OPENAI_AVAILABLE]):
+            self._create_new_indices()
+        else:
+            logger.warning("Missing required dependencies for index creation")
     
     def _load_indices(self, faiss_path: str, bm25_path: str):
         """Load existing FAISS and BM25 indices"""
@@ -295,7 +335,7 @@ class SimpleRAGPipeline:
             logger.error(f"Error saving indices: {e}")
     
     def search(self, query: str, department: str = None, top_k: int = 50) -> List[Dict[str, Any]]:
-        """Perform hybrid search"""
+        """Perform hybrid search with fallback to simpler methods"""
         if not self.chunk_texts or len(self.chunk_texts) == 0:
             logger.warning("No chunks available for search")
             return []
@@ -306,16 +346,18 @@ class SimpleRAGPipeline:
         
         # Expand search for better coverage
         search_top_k = min(top_k * 2, 200)
+        search_methods = []
         
         # Dense search (FAISS)
         dense_results = []
-        if self.embedding_model and self.faiss_index is not None and self.faiss_index.ntotal > 0:
+        if all([FAISS_AVAILABLE, OPENAI_AVAILABLE]) and self.embedding_model and self.faiss_index is not None and self.faiss_index.ntotal > 0:
             try:
                 query_embedding = self.embedding_model.embed_query(query)
                 query_embedding = np.array([query_embedding]).astype('float32')
                 faiss.normalize_L2(query_embedding)
                 
                 dense_scores, dense_indices = self.faiss_index.search(query_embedding, search_top_k)
+                search_methods.append('dense')
                 
                 for score, idx in zip(dense_scores[0], dense_indices[0]):
                     if idx < len(self.chunk_texts):
@@ -328,7 +370,8 @@ class SimpleRAGPipeline:
                             "text": self.chunk_texts[idx],
                             "metadata": self.chunk_metadata[idx],
                             "score": float(score),
-                            "type": "dense"
+                            "type": "dense",
+                            "search_methods": search_methods
                         })
             except Exception as e:
                 logger.error(f"Error in dense search: {e}")

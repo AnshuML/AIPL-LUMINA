@@ -613,6 +613,13 @@ def main():
     with tab4:
         st.header("📝 System Logs")
         
+        # Department filter
+        dept_filter = st.selectbox(
+            "Filter by Department",
+            ["All"] + config.DEPARTMENTS,
+            key="log_dept_filter"
+        )
+        
         # Log type selection
         log_type = st.selectbox(
             "Select Log Type",
@@ -621,10 +628,16 @@ def main():
         )
         
         # Get logs
-        logs = config.get_logs(log_type, limit=100)
+        all_logs = config.get_logs(log_type, limit=100)
+        
+        # Filter by department if needed
+        if dept_filter != "All":
+            logs = [log for log in all_logs if log['data'].get('department') == dept_filter]
+        else:
+            logs = all_logs
         
         if logs:
-            st.write(f"**{len(logs)} {log_type} found:**")
+            st.write(f"**{len(logs)} {log_type} found for {dept_filter} department:**")
             
             for i, log in enumerate(reversed(logs)):  # Show newest first
                 data = log['data']
@@ -636,12 +649,13 @@ def main():
                     question = data.get('question', 'Unknown')[:100]
                     response_time = data.get('response_time_seconds', 0)
                     confidence = data.get('confidence', 'Unknown')
+                    department = data.get('department', 'Unknown')
                     
-                    with st.expander(f"Query #{len(logs) - i} - {user_name} ({timestamp})"):
+                    with st.expander(f"Query #{len(logs) - i} - {user_name} ({department}) - {timestamp}"):
                         st.write(f"**👤 User:** {user_name} ({user_email})")
                         st.write(f"**❓ Question:** {data.get('question', 'Unknown')}")
                         st.write(f"**🤖 Answer:** {data.get('answer', 'Unknown')}")
-                        st.write(f"**🏢 Department:** {data.get('department', 'Unknown')}")
+                        st.write(f"**🏢 Department:** {department}")
                         st.write(f"**🌐 Language:** {data.get('language', 'Unknown')}")
                         st.write(f"**⏱️ Response Time:** {response_time:.2f} seconds")
                         st.write(f"**🎯 Confidence:** {confidence}")
@@ -656,7 +670,7 @@ def main():
                     department = data.get('department', 'Unknown')
                     language = data.get('language', 'Unknown')
                     
-                    with st.expander(f"Login #{len(logs) - i} - {user_name} ({timestamp})"):
+                    with st.expander(f"Login #{len(logs) - i} - {user_name} ({department}) - {timestamp}"):
                         st.write(f"**👤 User:** {user_name} ({user_email})")
                         st.write(f"**🏢 Department:** {department}")
                         st.write(f"**🌐 Language:** {language}")
@@ -665,8 +679,19 @@ def main():
                 else:
                     with st.expander(f"{log_type.title()} #{len(logs) - i} - {timestamp}"):
                         st.json(data)
+                        
+            # Export filtered logs
+            if st.button("📥 Export Filtered Logs"):
+                import json
+                log_json = json.dumps(logs, indent=2)
+                st.download_button(
+                    label="Download JSON",
+                    data=log_json,
+                    file_name=f"logs_{dept_filter}_{log_type}_{datetime.now().strftime('%Y%m%d_%H%M')}.json",
+                    mime="application/json"
+                )
         else:
-            st.info(f"No {log_type} found")
+            st.info(f"No {log_type} found for {dept_filter} department")
 
 if __name__ == "__main__":
     main()

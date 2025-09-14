@@ -767,7 +767,6 @@ def main():
             
             # Check if log files exist
             import os
-            from datetime import datetime
             today = datetime.now().strftime('%Y-%m-%d')
             
             st.write("**File Check:**")

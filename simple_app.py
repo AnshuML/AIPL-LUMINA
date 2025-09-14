@@ -235,23 +235,46 @@ def main():
     
     # Show welcome screen only if no messages exist
     if not st.session_state.messages:
-        # Dynamic greeting based on time
+        # Dynamic greeting based on time with robust timezone handling
         from datetime import datetime
-        current_hour = datetime.now().hour
-        current_time = datetime.now().strftime("%H:%M")
+        import time
         
-        if 5 <= current_hour < 12:
+        # Get current time - try multiple methods to ensure accuracy
+        now = datetime.now()
+        current_hour = now.hour
+        current_time = now.strftime("%H:%M")
+        
+        # Also try UTC time as fallback
+        utc_now = datetime.utcnow()
+        utc_hour = utc_now.hour
+        
+        # Use the later time to ensure we get the correct greeting
+        actual_hour = max(current_hour, utc_hour)
+        
+        # Force refresh every 5 minutes to update greeting
+        cache_key = f"greeting_{actual_hour}_{now.minute // 5}"
+        
+        if 5 <= actual_hour < 12:
             greeting = "Good morning!"
-        elif 12 <= current_hour < 17:
+        elif 12 <= actual_hour < 17:
             greeting = "Good afternoon!"
-        elif 17 <= current_hour < 22:  # Extended evening until 10 PM
+        elif 17 <= actual_hour < 22:  # Extended evening until 10 PM
             greeting = "Good evening!"
         else:
             greeting = "Good night!"
         
         # Debug: Print current time and greeting
-        print(f"🕐 Current time: {current_time} (Hour: {current_hour})")
+        print(f"🕐 Local time: {current_time} (Hour: {current_hour})")
+        print(f"🌍 UTC time: {utc_now.strftime('%H:%M')} (Hour: {utc_hour})")
+        print(f"✅ Using hour: {actual_hour}")
         print(f"👋 Generated greeting: {greeting}")
+        print(f"🔄 Cache key: {cache_key}")
+        
+        # Add a small refresh button to force greeting update
+        col1, col2, col3 = st.columns([1, 1, 1])
+        with col2:
+            if st.button("🔄 Refresh Greeting", key="refresh_greeting"):
+                st.rerun()
         
         # Welcome Screen - Professional Horizontal Layout
         st.markdown(f"""

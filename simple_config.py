@@ -101,13 +101,19 @@ class SimpleConfig:
             
             log_file = os.path.join(cls.LOGS_DIR, f"{activity_type}.json")
             
+            # Debug print
+            print(f"🔍 DEBUG: Logging {activity_type} to {log_file}")
+            print(f"🔍 DEBUG: Data: {data}")
+            
             # Load existing logs
             logs = []
             if os.path.exists(log_file):
                 try:
                     with open(log_file, 'r', encoding='utf-8') as f:
                         logs = json.load(f)
-                except:
+                    print(f"🔍 DEBUG: Loaded {len(logs)} existing logs")
+                except Exception as load_error:
+                    print(f"🔍 DEBUG: Error loading existing logs: {load_error}")
                     logs = []
             
             # Add new log entry
@@ -116,12 +122,17 @@ class SimpleConfig:
                 "data": data
             }
             logs.append(log_entry)
+            print(f"🔍 DEBUG: Added new log entry, total logs: {len(logs)}")
             
             # Save logs
             with open(log_file, 'w', encoding='utf-8') as f:
                 json.dump(logs, f, indent=2, ensure_ascii=False)
+            print(f"✅ DEBUG: Successfully saved {len(logs)} logs to {log_file}")
+            
         except Exception as e:
-            print(f"Warning: Could not log activity: {e}")
+            print(f"❌ ERROR: Could not log activity: {e}")
+            import traceback
+            traceback.print_exc()
             # Continue without logging
     
     @classmethod

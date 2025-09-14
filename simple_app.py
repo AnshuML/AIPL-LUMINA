@@ -214,6 +214,11 @@ def main():
         with st.chat_message("assistant"):
             with st.spinner("Lumina Thinking..."):
                 try:
+                    # Debug: Print session state
+                    print(f"🔍 DEBUG: Session state - logged_in: {st.session_state.get('logged_in', False)}")
+                    print(f"🔍 DEBUG: Session state - user_email: {st.session_state.get('user_email', 'None')}")
+                    print(f"🔍 DEBUG: Session state - user_name: {st.session_state.get('user_name', 'None')}")
+                    
                     # Get RAG pipeline
                     rag_pipeline = get_rag_pipeline()
                     

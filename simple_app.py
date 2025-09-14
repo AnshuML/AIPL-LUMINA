@@ -319,7 +319,11 @@ def main():
                             traceback.print_exc()
                         
                         # Display response
+                        print(f"🔍 DEBUG: Generated response: {response[:100]}...")
                         st.markdown(f"<div class='chat-message assistant-message'>{response}</div>", unsafe_allow_html=True)
+                        
+                        # Add response to session state
+                        st.session_state.messages.append({"role": "assistant", "content": response})
                         
                         # Show sources
                         if search_results:
@@ -331,7 +335,11 @@ def main():
                     else:
                         # No relevant chunks found
                         response = "I couldn't find relevant information in the uploaded documents. Please make sure documents are uploaded for this department or try rephrasing your question."
+                        print(f"🔍 DEBUG: No chunks found, using default response: {response[:100]}...")
                         st.markdown(f"<div class='chat-message assistant-message'>{response}</div>", unsafe_allow_html=True)
+                        
+                        # Add response to session state
+                        st.session_state.messages.append({"role": "assistant", "content": response})
                         
                         # Log the query with complete user information
                         try:
@@ -372,8 +380,12 @@ def main():
                 
                 except Exception as e:
                     error_msg = f"Sorry, I encountered an error: {str(e)}"
+                    print(f"🔍 DEBUG: Error occurred: {error_msg}")
                     st.error(error_msg)
                     print(f"Error processing query: {e}")
+                    
+                    # Add error message to session state
+                    st.session_state.messages.append({"role": "assistant", "content": error_msg})
                     
                     # Log the error with complete user information
                     try:
@@ -390,11 +402,8 @@ def main():
                     except Exception as log_error:
                         print(f"❌ Error logging error: {log_error}")
         
-        # Add assistant message to session state
-        if 'response' in locals():
-            st.session_state.messages.append({"role": "assistant", "content": response})
-        elif 'error_msg' in locals():
-            st.session_state.messages.append({"role": "assistant", "content": error_msg})
+        # Session state is now managed within each response section
+        # No need for this additional management
     
     # Footer
     st.markdown("---")

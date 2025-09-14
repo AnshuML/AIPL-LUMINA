@@ -1,5 +1,5 @@
 """
-Simplified HR Chatbot without database dependency
+Simplified  Chatbot without database dependency
 """
 
 import os
@@ -50,7 +50,7 @@ config.setup_directories()
 # Page configuration
 st.set_page_config(
     page_title="Welcome To AIPL Lumina",
-    page_icon="🤖",
+    #page_icon="✨",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -58,93 +58,165 @@ st.set_page_config(
 # Custom CSS - Dark Theme
 st.markdown("""
 <style>
-    /* Dark theme for entire app */
+    /* Modern theme for AIPL Lumina */
     .stApp {
-        background-color: #1a1a1a;
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
         color: #ffffff;
     }
     
     .main-header {
-        background: linear-gradient(90deg, #2c3e50 0%, #34495e 100%);
-        padding: 2rem;
-        border-radius: 10px;
+        background: linear-gradient(135deg, #0f3460 0%, #533483 100%);
+        padding: 2.5rem;
+        border-radius: 15px;
         color: white;
         text-align: center;
-        margin-bottom: 2rem;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        margin-bottom: 2.5rem;
+        box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+        backdrop-filter: blur(4px);
+        border: 1px solid rgba(255, 255, 255, 0.18);
     }
     
     .chat-message {
-        padding: 1rem;
-        border-radius: 15px;
-        margin: 0.5rem 0;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-        border: 1px solid #333;
+        padding: 1.2rem;
+        border-radius: 20px;
+        margin: 0.8rem 0;
+        box-shadow: 0 8px 32px rgba(31, 38, 135, 0.15);
+        backdrop-filter: blur(4px);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        position: relative;
     }
     
     .user-message {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #533483 0%, #0f3460 100%);
         color: white;
-        margin-left: 20%;
+        margin-left: 25%;
         border: none;
+        transform: translateX(10px);
+        transition: transform 0.3s ease;
+    }
+    
+    .user-message::before {
+        content: "👤";
+        position: absolute;
+        left: -50px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+        border: 3px solid #fff;
     }
     
     .assistant-message {
-        background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+        background: linear-gradient(135deg, #16213e 0%, #1a1a2e 100%);
         color: white;
-        margin-right: 20%;
+        margin-right: 25%;
         border: none;
+        transform: translateX(-10px);
+        transition: transform 0.3s ease;
+    }
+    
+    .assistant-message::before {
+        content: "🤖";
+        position: absolute;
+        right: -50px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        border: 3px solid #fff;
+    }
+    
+    .lumina-brand {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 25px;
+        font-weight: bold;
+        font-size: 0.9rem;
+        display: inline-block;
+        margin-bottom: 0.5rem;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
     }
     
     .status-info {
-        background-color: #2c3e50;
-        padding: 1rem;
-        border-radius: 8px;
-        border-left: 4px solid #3498db;
-        margin: 1rem 0;
+        background: rgba(15, 52, 96, 0.6);
+        padding: 1.2rem;
+        border-radius: 12px;
+        border-left: 4px solid #533483;
+        margin: 1.2rem 0;
         color: white;
+        backdrop-filter: blur(4px);
+        box-shadow: 0 8px 32px rgba(31, 38, 135, 0.15);
     }
     
-    /* Dark theme for sidebar */
+    /* Modern theme for sidebar */
     .css-1d391kg {
-        background-color: #2c3e50;
+        background: linear-gradient(180deg, #0f3460 0%, #16213e 100%);
+        backdrop-filter: blur(4px);
     }
     
-    /* Dark theme for selectbox */
+    /* Modern theme for selectbox */
     .stSelectbox > div > div {
-        background-color: #34495e;
+        background: rgba(15, 52, 96, 0.6);
         color: white;
+        backdrop-filter: blur(4px);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: 8px;
     }
     
-    /* Dark theme for chat input */
+    /* Modern theme for chat input */
     .stChatInput > div > div {
-        background-color: #34495e;
-        border: 1px solid #555;
+        background: rgba(15, 52, 96, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: 12px;
+        backdrop-filter: blur(4px);
     }
     
-    /* Dark theme for expander */
+    /* Modern theme for expander */
     .streamlit-expander {
-        background-color: #2c3e50;
-        border: 1px solid #555;
+        background: rgba(15, 52, 96, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: 12px;
+        backdrop-filter: blur(4px);
     }
     
     /* Footer styling */
     .footer {
-        background-color: #2c3e50;
-        padding: 1rem;
-        border-radius: 8px;
+        background: rgba(15, 52, 96, 0.6);
+        padding: 1.2rem;
+        border-radius: 12px;
         text-align: center;
-        color: #bdc3c7;
-        margin-top: 2rem;
+        color: rgba(255, 255, 255, 0.8);
+        margin-top: 2.5rem;
+        backdrop-filter: blur(4px);
+        border: 1px solid rgba(255, 255, 255, 0.18);
     }
 </style>
 """, unsafe_allow_html=True)
 
 def main():
+    # Initialize error message variable
+    error_msg = "An unexpected error occurred"
+    
     # Check if user is logged in
     if not st.session_state.get("logged_in", False):
-        st.warning("🔐 Please login first to access the chatbot")
-        st.info("Click the 'Login' button in the sidebar to continue")
+        # Import login module
+        from login import main as login_main
+        login_main()
         return
     
     # Debug: Print session state
@@ -160,8 +232,8 @@ def main():
     # Header
     st.markdown("""
     <div class="main-header">
-        <h1> Welcome To AIPL Lumina</h1>
-        <p>Your intelligent HR assistant for company policies and procedures</p>
+        <h1>Welcome To AIPL Lumina</h1>
+        <p style="font-size: 1.2em; margin-top: 1rem;">Your Intelligent Assistant for Company Policies and Procedures</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -216,7 +288,20 @@ def main():
     # Display chat messages
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
-            st.markdown(f"<div class='chat-message {message['role']}-message'>{message['content']}</div>", unsafe_allow_html=True)
+            if message["role"] == "assistant":
+                st.markdown(f"""
+                <div class='chat-message {message['role']}-message'>
+                    <div class='lumina-brand'>🤖 Lumina Assistant</div>
+                    {message['content']}
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.markdown(f"""
+                <div class='chat-message {message['role']}-message'>
+                    <div class='lumina-brand'>👤 You</div>
+                    {message['content']}
+                </div>
+                """, unsafe_allow_html=True)
     
     # Chat input
     if prompt := st.chat_input(f"Ask about {department} policies..."):
@@ -230,7 +315,12 @@ def main():
         
         # Display user message
         with st.chat_message("user"):
-            st.markdown(f"<div class='chat-message user-message'>{prompt}</div>", unsafe_allow_html=True)
+            st.markdown(f"""
+            <div class='chat-message user-message'>
+                <div class='lumina-brand'>👤 You</div>
+                {prompt}
+            </div>
+            """, unsafe_allow_html=True)
         
         # Force logging of user query immediately
         try:
@@ -280,9 +370,8 @@ def main():
                 response = response_data.get('answer', 'Sorry, I could not generate a response.')
                 print(f"🔍 DEBUG: Generated response: {response[:100]}...")
                 
-                # Log the query with complete user information
+                # Get client IP and user agent
                 try:
-                    # Get client IP and user agent
                     client_ip = st.get_client_ip() if hasattr(st, 'get_client_ip') else 'unknown'
                     user_agent = st.get_user_agent() if hasattr(st, 'get_user_agent') else 'unknown'
                 except Exception as e:
@@ -290,6 +379,7 @@ def main():
                     client_ip = 'unknown'
                     user_agent = 'unknown'
                 
+                # Prepare query data for logging
                 query_data = {
                     "user_email": st.session_state.get("user_email", "unknown"),
                     "user_name": st.session_state.get("user_name", "unknown"),
@@ -315,135 +405,125 @@ def main():
                         "session_duration": time.time() - float(st.session_state.session_id.split('_')[0])
                     }
                 }
+                
+                # Log the query
+                try:
+                    print(f"🔍 DEBUG: Attempting to log query for {query_data['user_email']}")
+                    print(f"🔍 DEBUG: Question: {query_data['question'][:50]}...")
                     
-                # Debug: Print query data
-                print(f"🔍 DEBUG: Attempting to log query for {query_data['user_email']}")
-                print(f"🔍 DEBUG: Question: {query_data['question'][:50]}...")
+                    config.log_activity("queries", query_data)
+                    print(f"✅ Query logged successfully for {st.session_state.get('user_email', 'unknown')}")
+                    
+                    # Verify log was written
+                    logs = config.get_logs("queries", limit=5)
+                    print(f"🔍 DEBUG: Total queries in log: {len(logs)}")
+                    
+                except Exception as e:
+                    print(f"❌ Error logging query: {e}")
+                    import traceback
+                    traceback.print_exc()
                 
-                # Force logging
-                config.log_activity("queries", query_data)
-                print(f"✅ Query logged successfully for {st.session_state.get('user_email', 'unknown')}")
+                # Display response
+                print(f"🔍 DEBUG: About to display response: {response[:100]}...")
                 
-                # Verify log was written
-                logs = config.get_logs("queries", limit=5)
-                print(f"🔍 DEBUG: Total queries in log: {len(logs)}")
+                # Create a container for the response
+                with st.container():
+                    st.markdown(f"""
+                    <div class='chat-message assistant-message'>
+                        <div class='lumina-brand'>🤖 Lumina Assistant</div>
+                        {response}
+                    </div>
+                    """, unsafe_allow_html=True)
                 
-                # Force refresh admin panel
-                # st.rerun()  # Commented out to prevent page refresh
+                print(f"✅ DEBUG: Response displayed successfully")
                 
+                # Add response to session state
+                st.session_state.messages.append({"role": "assistant", "content": response})
+                
+                # Show sources
+                sources = response_data.get('sources', [])
+                if sources:
+                    with st.expander("📚 Sources"):
+                        for i, source in enumerate(sources, 1):
+                            st.write(f"**{i}.** {source}")
+                        st.write(f"**Chunks Used:** {response_data.get('chunks_used', 0)}")
+                        st.write(f"**Confidence:** {response_data.get('confidence', 'Unknown')}")
+                else:
+                    # No relevant chunks found
+                    no_chunks_response = "I couldn't find relevant information in the uploaded documents. Please make sure documents are uploaded for this department or try rephrasing your question."
+                    print(f"🔍 DEBUG: No chunks found, using default response: {no_chunks_response[:100]}...")
+                    
+                    # Create a container for the no chunks response
+                    with st.container():
+                        st.markdown(f"""
+                        <div class='chat-message assistant-message'>
+                            <div class='lumina-brand'>🤖 Lumina Assistant</div>
+                            {no_chunks_response}
+                        </div>
+                        """, unsafe_allow_html=True)
+                    
+                    print(f"✅ DEBUG: No chunks response displayed successfully")
+                    
+                    # Add no chunks response to session state
+                    st.session_state.messages.append({"role": "assistant", "content": no_chunks_response})
+                    
+                    # Log the no chunks query
+                    try:
+                        no_chunks_query_data = {
+                            "user_email": st.session_state.get("user_email", "unknown"),
+                            "user_name": st.session_state.get("user_name", "unknown"),
+                            "question": prompt,
+                            "answer": no_chunks_response,
+                            "department": department,
+                            "language": language,
+                            "chunks_used": 0,
+                            "sources": [],
+                            "confidence": "low",
+                            "response_time_seconds": 0,
+                            "model_used": "fallback",
+                            "timestamp": datetime.now().isoformat(),
+                            "enhanced_processing": False,
+                            "session_id": st.session_state.session_id,
+                            "user_ip": client_ip,
+                            "platform": {
+                                "type": "web",
+                                "user_agent": user_agent
+                            },
+                            "context": {
+                                "total_messages": len(st.session_state.messages),
+                                "session_duration": time.time() - float(st.session_state.session_id.split('_')[0])
+                            }
+                        }
+                        
+                        print(f"🔍 DEBUG: Attempting to log no chunks query for {no_chunks_query_data['user_email']}")
+                        config.log_activity("queries", no_chunks_query_data)
+                        print(f"✅ No chunks query logged successfully for {st.session_state.get('user_email', 'unknown')}")
+                        
+                    except Exception as e:
+                        print(f"❌ Error logging no chunks query: {e}")
+                        import traceback
+                        traceback.print_exc()
+                        
         except Exception as e:
-            print(f"❌ Error logging query: {e}")
-            import traceback
-            traceback.print_exc()
-            
-        # Display response
-        print(f"🔍 DEBUG: About to display response: {response[:100]}...")
-        
-        # Create a container for the response
-        with st.container():
-            st.markdown("**🤖 Assistant:**")
-            st.markdown(response)
-            st.markdown("---")
-        
-        print(f"✅ DEBUG: Response displayed successfully")
-        
-        # Add response to session state
-        st.session_state.messages.append({"role": "assistant", "content": response})
-    
-        # Show sources
-        sources = response_data.get('sources', [])
-        if sources:
-            with st.expander("📚 Sources"):
-                for i, source in enumerate(sources, 1):
-                    st.write(f"**{i}.** {source}")
-                st.write(f"**Chunks Used:** {response_data.get('chunks_used', 0)}")
-                st.write(f"**Confidence:** {response_data.get('confidence', 'Unknown')}")
-        else:
-            # No relevant chunks found
-            response = "I couldn't find relevant information in the uploaded documents. Please make sure documents are uploaded for this department or try rephrasing your question."
-            print(f"🔍 DEBUG: No chunks found, using default response: {response[:100]}...")
-            
-            # Create a container for the response
-            with st.container():
-                st.markdown("**🤖 Assistant:**")
-                st.markdown(response)
-                st.markdown("---")
-            
-            print(f"✅ DEBUG: No chunks response displayed successfully")
-            
-            # Add response to session state
-            st.session_state.messages.append({"role": "assistant", "content": response})
-            
-            # Log the query with complete user information
-            try:
-                query_data = {
-                    "user_email": st.session_state.get("user_email", "unknown"),
-                    "user_name": st.session_state.get("user_name", "unknown"),
-                    "question": prompt,
-                    "answer": response,
-                    "department": department,
-                    "language": language,
-                    "chunks_used": 0,
-                    "sources": [],
-                    "confidence": "low",
-                    "response_time_seconds": 0,
-                    "model_used": "none",
-                    "timestamp": datetime.now().isoformat()
-                }
-                
-                # Debug: Print query data
-                print(f"🔍 DEBUG: Attempting to log query for {query_data['user_email']}")
-                print(f"🔍 DEBUG: Question: {query_data['question'][:50]}...")
-                
-                # Force logging
-                config.log_activity("queries", query_data)
-                print(f"✅ Query logged successfully for {st.session_state.get('user_email', 'unknown')}")
-                
-                # Verify log was written
-                logs = config.get_logs("queries", limit=5)
-                print(f"🔍 DEBUG: Total queries in log: {len(logs)}")
-                
-                # Force refresh admin panel
-                # st.rerun()  # Commented out to prevent page refresh
-                
-            except Exception as e:
-                print(f"❌ Error logging query: {e}")
-                import traceback
-                traceback.print_exc()
-        
-            except Exception as e:
             # Handle any exceptions that occur during query processing
-               error_msg = f"Sorry, I encountered an error: {str(e)}"
+            error_msg = f"Sorry, I encountered an error: {str(e)}"
             print(f"🔍 DEBUG: Error occurred: {error_msg}")
-        
+            
+            # Ensure error_msg is defined
+            if 'error_msg' not in locals():
+                error_msg = "An unexpected error occurred"
+            
             # Create a container for the error response
             with st.container():
-                st.markdown("**🤖 Assistant:**")
-                st.markdown(f"❌ {error_msg}")
-                st.markdown("---")
-            
-            print(f"Error processing query: {e}")
+                st.markdown(f"""
+                <div class='chat-message assistant-message'>
+                    <div class='lumina-brand'>🤖 Lumina Assistant</div>
+                    ❌ {error_msg}
+                </div>
+                """, unsafe_allow_html=True)
             
             # Add error message to session state
             st.session_state.messages.append({"role": "assistant", "content": error_msg})
-            
-            # Log the error with complete user information
-            try:
-                config.log_activity("errors", {
-                    "user_email": st.session_state.get("user_email", "unknown"),
-                    "user_name": st.session_state.get("user_name", "unknown"),
-                    "question": prompt,
-                    "error": str(e),
-                    "department": department,
-                    "language": language,
-                    "timestamp": datetime.now().isoformat()
-                })
-                print(f"✅ Error logged successfully for {st.session_state.get('user_email', 'unknown')}")
-            except Exception as log_error:
-                print(f"❌ Error logging error: {log_error}")
-    
-    # Session state is now managed within each response section
-    # No need for this additional management
     
     # Footer
     st.markdown("---")

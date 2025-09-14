@@ -18,20 +18,21 @@ st.set_page_config(
 # Custom CSS - Dark Theme
 st.markdown("""
 <style>
-    /* Dark theme for entire app */
+    /* Modern theme for AIPL Lumina */
     .stApp {
-        background-color: #1a1a1a;
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
         color: #ffffff;
     }
     
     .login-container {
         max-width: 500px;
         margin: 0 auto;
-        padding: 2rem;
-        background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
-        border-radius: 20px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        border: 1px solid #555;
+        padding: 2.5rem;
+        background: linear-gradient(135deg, #0f3460 0%, #533483 100%);
+        border-radius: 25px;
+        box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+        backdrop-filter: blur(4px);
+        border: 1px solid rgba(255, 255, 255, 0.18);
     }
     
     .login-header {
@@ -51,30 +52,35 @@ st.markdown("""
     }
     
     .login-form {
-        background-color: #34495e;
+        background: rgba(15, 52, 96, 0.6);
         padding: 2rem;
-        border-radius: 15px;
-        margin: 1rem 0;
+        border-radius: 20px;
+        margin: 1.2rem 0;
+        backdrop-filter: blur(4px);
+        border: 1px solid rgba(255, 255, 255, 0.18);
     }
     
     .stTextInput > div > div > input {
-        background-color: #2c3e50;
+        background: rgba(15, 52, 96, 0.6);
         color: white;
-        border: 1px solid #555;
-        border-radius: 10px;
-        padding: 0.75rem;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: 12px;
+        padding: 0.85rem;
+        backdrop-filter: blur(4px);
     }
     
     .stButton > button {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #533483 0%, #0f3460 100%);
         color: white;
         border: none;
-        border-radius: 10px;
-        padding: 0.75rem 2rem;
-        font-size: 1.1rem;
+        border-radius: 15px;
+        padding: 0.85rem 2rem;
+        font-size: 1.2rem;
         font-weight: bold;
         width: 100%;
         transition: all 0.3s ease;
+        backdrop-filter: blur(4px);
+        border: 1px solid rgba(255, 255, 255, 0.18);
     }
     
     .stButton > button:hover {
@@ -95,7 +101,7 @@ def main():
     st.markdown("""
     <div class="login-container">
         <div class="login-header">
-            <h1>🤖 Welcome To AIPL Lumina</h1>
+            <h1>Welcome To AIPL Lumina</h1>
             <p>Your intelligent HR assistant for company policies and procedures</p>
         </div>
     """, unsafe_allow_html=True)

@@ -262,8 +262,6 @@ def main():
     # Show welcome screen only if no messages exist
     if not st.session_state.messages:
         # Dynamic greeting based on time - simplified and reliable
-        from datetime import datetime
-        
         # Get current time
         now = datetime.now()
         current_hour = now.hour

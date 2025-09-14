@@ -709,7 +709,8 @@ def main():
         with col1:
             log_type = st.selectbox(
                 "Select Log Type",
-                ["queries", "user_logins", "uploads", "errors", "system"],
+                ["queries", "user_logins", "uploads", "errors"],
+                index=0,  # Default to "queries"
                 key="log_type"
             )
         
@@ -717,6 +718,7 @@ def main():
             department = st.selectbox(
                 "Filter by Department",
                 ["All"] + config.DEPARTMENTS,
+                index=0,  # Default to "All"
                 key="log_dept_filter"
             )
             
@@ -730,11 +732,19 @@ def main():
                 key="log_limit"
             )
         
+        # Add refresh button
+        if st.button("🔄 Refresh Logs", help="Refresh logs from files"):
+            st.rerun()
+        
         # Get logs - pass department to get_logs function
         if department != "All":
             logs = config.get_logs(log_type, limit=100, department=department)
         else:
             logs = config.get_logs(log_type, limit=100)
+        
+        # Debug information
+        st.write(f"**Debug:** Loading {log_type} logs for {department} department")
+        st.write(f"**Found:** {len(logs)} logs")
         
         if logs:
             st.write(f"**{len(logs)} {log_type} found for {department} department:**")

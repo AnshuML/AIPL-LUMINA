@@ -7,6 +7,14 @@ import json
 from datetime import datetime
 from typing import Dict, List, Any
 
+# Import streamlit only when available (for cloud deployment)
+try:
+    import streamlit as st
+    STREAMLIT_AVAILABLE = True
+except ImportError:
+    STREAMLIT_AVAILABLE = False
+    st = None
+
 class SimpleConfig:
     """Simple configuration for file-based system"""
     
@@ -118,10 +126,27 @@ class SimpleConfig:
     def log_activity(cls, activity_type: str, data: Dict):
         """Enhanced log activity to JSON file with better organization"""
         try:
+            # Get the base directory for logs
+            base_dir = os.getenv('STREAMLIT_LOG_DIR', cls.LOGS_DIR)
+            
             # Ensure logs directory exists with department subdirectories
-            os.makedirs(cls.LOGS_DIR, exist_ok=True)
-            for dept in cls.DEPARTMENTS:
-                os.makedirs(os.path.join(cls.LOGS_DIR, dept), exist_ok=True)
+            try:
+                os.makedirs(base_dir, exist_ok=True)
+                for dept in cls.DEPARTMENTS:
+                    os.makedirs(os.path.join(base_dir, dept), exist_ok=True)
+                print(f"✅ Created logs directory structure: {base_dir}")
+            except Exception as dir_error:
+                print(f"⚠️ Could not create logs directory {base_dir}: {dir_error}")
+                # Try alternative directory for cloud deployment
+                base_dir = "/tmp/logs" if os.path.exists("/tmp") else "."
+                try:
+                    os.makedirs(base_dir, exist_ok=True)
+                    for dept in cls.DEPARTMENTS:
+                        os.makedirs(os.path.join(base_dir, dept), exist_ok=True)
+                    print(f"✅ Created alternative logs directory: {base_dir}")
+                except Exception as alt_dir_error:
+                    print(f"⚠️ Could not create alternative logs directory: {alt_dir_error}")
+                    base_dir = "."
             
             # Determine department from data or use 'general'
             department = data.get('department', 'general').upper()
@@ -129,7 +154,7 @@ class SimpleConfig:
                 department = 'general'
             
             # Create department-specific log file
-            log_dir = os.path.join(cls.LOGS_DIR, department)
+            log_dir = os.path.join(base_dir, department)
             log_file = os.path.join(log_dir, f"{activity_type}.json")
             
             # Add additional metadata
@@ -139,6 +164,7 @@ class SimpleConfig:
                 "department": department,
                 "user_ip": data.get('user_ip', 'unknown'),
                 "session_id": data.get('session_id', 'unknown'),
+                "platform": "streamlit_cloud" if os.getenv('STREAMLIT_RUNTIME') else "local",
                 "data": data
             }
             
@@ -158,36 +184,111 @@ class SimpleConfig:
             today = datetime.now().strftime('%Y-%m-%d')
             rotated_log_file = os.path.join(log_dir, f"{activity_type}_{today}.json")
             
-            with open(rotated_log_file, 'w', encoding='utf-8') as f:
-                json.dump(logs, f, indent=2, ensure_ascii=False)
-            
-            # Update latest log file
-            with open(log_file, 'w', encoding='utf-8') as f:
-                json.dump(logs[-1000:], f, indent=2, ensure_ascii=False)  # Keep last 1000 entries in current file
+            # Ensure write permissions
+            try:
+                # Try to write to rotated log file first
+                with open(rotated_log_file, 'w', encoding='utf-8') as f:
+                    json.dump(logs, f, indent=2, ensure_ascii=False)
+                
+                # Update latest log file
+                with open(log_file, 'w', encoding='utf-8') as f:
+                    json.dump(logs[-1000:], f, indent=2, ensure_ascii=False)  # Keep last 1000 entries
+                
+                print(f"✅ Successfully logged {activity_type} activity to {log_file}")
+                
+            except (PermissionError, OSError) as write_error:
+                print(f"⚠️ Could not write to log files: {write_error}")
+                # If we can't write to file system, store in session state if available
+                if STREAMLIT_AVAILABLE and hasattr(st, 'session_state'):
+                    if not hasattr(st.session_state, 'temp_logs'):
+                        st.session_state.temp_logs = []
+                    st.session_state.temp_logs.append(log_entry)
+                    print(f"ℹ️ Stored log in session state due to write restrictions")
+                else:
+                    print(f"ℹ️ Could not store log due to write restrictions and no session state available")
+                    # At least print the log entry for debugging
+                    print(f"📝 Log entry: {json.dumps(log_entry, indent=2)}")
             
         except Exception as e:
             print(f"Error: Could not log activity: {e}")
             import traceback
             traceback.print_exc()
+            
+            # Fallback: at least print the log entry for debugging
+            print(f"📝 Fallback log entry: {json.dumps(log_entry, indent=2)}")
     
     @classmethod
-    def get_logs(cls, activity_type: str, limit: int = 100) -> List[Dict]:
-        """Get activity logs"""
+    def get_logs(cls, activity_type: str, limit: int = 100, department: str = None) -> List[Dict]:
+        """Get activity logs with optional department filter"""
         try:
-            # Ensure logs directory exists
-            os.makedirs(cls.LOGS_DIR, exist_ok=True)
+            # Get the base directory for logs
+            base_dir = os.getenv('STREAMLIT_LOG_DIR', cls.LOGS_DIR)
             
-            log_file = os.path.join(cls.LOGS_DIR, f"{activity_type}.json")
+            # If department is specified, look in department directory
+            if department and department != 'All':
+                log_dir = os.path.join(base_dir, department)
+            else:
+                log_dir = base_dir
             
-            if not os.path.exists(log_file):
+            # Ensure directory exists
+            if not os.path.exists(log_dir):
                 return []
             
-            with open(log_file, 'r', encoding='utf-8') as f:
-                logs = json.load(f)
-            return logs[-limit:]  # Return last N entries
+            log_file = os.path.join(log_dir, f"{activity_type}.json")
+            
+            # Check session state for temporary logs first
+            temp_logs = []
+            if STREAMLIT_AVAILABLE and hasattr(st, 'session_state') and hasattr(st.session_state, 'temp_logs'):
+                temp_logs = [log for log in st.session_state.temp_logs 
+                            if log.get('activity_type') == activity_type]
+            
+            # Then try to read from file
+            file_logs = []
+            if os.path.exists(log_file):
+                try:
+                    with open(log_file, 'r', encoding='utf-8') as f:
+                        file_logs = json.load(f)
+                    print(f"✅ Loaded {len(file_logs)} logs from {log_file}")
+                except Exception as load_error:
+                    print(f"⚠️ Error loading logs from file {log_file}: {load_error}")
+                    # Try alternative directory
+                    alt_log_file = os.path.join(".", f"{activity_type}.json")
+                    if os.path.exists(alt_log_file):
+                        try:
+                            with open(alt_log_file, 'r', encoding='utf-8') as f:
+                                file_logs = json.load(f)
+                            print(f"✅ Loaded {len(file_logs)} logs from alternative file {alt_log_file}")
+                        except Exception as alt_load_error:
+                            print(f"⚠️ Error loading logs from alternative file: {alt_load_error}")
+            else:
+                print(f"ℹ️ Log file does not exist: {log_file}")
+            
+            # Combine and sort logs by timestamp
+            all_logs = temp_logs + file_logs
+            all_logs.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+            
+            return all_logs[:limit]  # Return last N entries
+            
         except Exception as e:
             print(f"Warning: Could not get logs: {e}")
             return []
+    
+    @classmethod
+    def export_all_logs(cls, department: str = None) -> Dict[str, List[Dict]]:
+        """Export all logs for all activity types"""
+        try:
+            activity_types = ["queries", "user_logins", "uploads", "errors", "system"]
+            all_logs = {}
+            
+            for activity_type in activity_types:
+                logs = cls.get_logs(activity_type, limit=1000, department=department)
+                all_logs[activity_type] = logs
+            
+            return all_logs
+            
+        except Exception as e:
+            print(f"Warning: Could not export logs: {e}")
+            return {}
 
 # Global instance
 config = SimpleConfig()

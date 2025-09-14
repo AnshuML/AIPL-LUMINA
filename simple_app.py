@@ -427,12 +427,7 @@ def main():
     
     # Footer
     st.markdown("---")
-    st.markdown("""
-    <div class="footer">
-        
-        <p>Powered by advanced AI technology for accurate, context-based answers</p>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown("**Powered by advanced AI technology for accurate, context-based answers**")
 
 if __name__ == "__main__":
     main()

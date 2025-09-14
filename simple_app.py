@@ -238,6 +238,8 @@ def main():
         # Dynamic greeting based on time
         from datetime import datetime
         current_hour = datetime.now().hour
+        current_time = datetime.now().strftime("%H:%M")
+        
         if 5 <= current_hour < 12:
             greeting = "Good morning!"
         elif 12 <= current_hour < 17:
@@ -247,13 +249,19 @@ def main():
         else:
             greeting = "Good night!"
         
-        # Welcome Screen - Enhanced Design (Wide Layout)
+        # Debug: Print current time and greeting
+        print(f"🕐 Current time: {current_time} (Hour: {current_hour})")
+        print(f"👋 Generated greeting: {greeting}")
+        
+        # Welcome Screen - Professional Horizontal Layout
         st.markdown(f"""
-        <div style="display: flex; justify-content: center; align-items: center; min-height: 50vh; padding: 2rem;">
-            <div style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); border-radius: 25px; padding: 3rem 5rem; text-align: center; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3); border: 2px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); max-width: 600px; width: 100%; min-height: 200px;">
-                <h1 style="font-size: 3.5rem; font-weight: bold; color: #ffffff; margin: 0 0 1rem 0; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">AIPL Lumina</h1>
-                <p style="font-size: 1.4rem; color: #ff6b9d; margin: 0 0 1.5rem 0; font-weight: 600; text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">AIPL Group</p>
-                <p style="font-size: 1.3rem; color: #ffd700; margin: 0; font-weight: 500; text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">{greeting}</p>
+        <div style="display: flex; justify-content: center; align-items: center; min-height: 40vh; padding: 1rem;">
+            <div style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); border-radius: 20px; padding: 2.5rem 4rem; text-align: center; box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3); border: 2px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); max-width: 800px; width: 90%; min-height: 160px; display: flex; flex-direction: column; justify-content: center;">
+                <h1 style="font-size: 4rem; font-weight: bold; color: #ffffff; margin: 0 0 0.8rem 0; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; letter-spacing: 2px;">AIPL LUMINA</h1>
+                <div style="display: flex; justify-content: center; align-items: center; gap: 2rem; margin-top: 0.5rem;">
+                    <span style="font-size: 1.2rem; color: #ff6b9d; font-weight: 600; text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">AIPL Group</span>
+                    <span style="font-size: 1.2rem; color: #ffd700; font-weight: 500; text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">{greeting}</span>
+                </div>
             </div>
         </div>
         """, unsafe_allow_html=True)

@@ -146,9 +146,14 @@ def show_login_page():
                     print(f"🔍 DEBUG: User name: {name}")
                     print(f"🔍 DEBUG: Login time: {login_data['login_time']}")
                     
-                    # Force logging
-                    config.log_activity("user_logins", login_data)
-                    print(f"✅ Login logged successfully for {email}")
+                    # Force logging with error handling
+                    try:
+                        result = config.log_activity("user_logins", login_data)
+                        print(f"✅ Login logged successfully for {email}: {result}")
+                    except Exception as e:
+                        print(f"❌ Failed to log login: {e}")
+                        import traceback
+                        traceback.print_exc()
                     
                     # Verify log was written
                     logs = config.get_logs("user_logins", limit=5)

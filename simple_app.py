@@ -386,9 +386,14 @@ def main():
             print(f"🔍 DEBUG: Question: {prompt}")
             print(f"🔍 DEBUG: User: {st.session_state.get('user_name', 'No name')}")
             
-            # Force logging
-            config.log_activity("queries", query_data)
-            print(f"✅ User query logged immediately")
+            # Force logging with error handling
+            try:
+                result = config.log_activity("queries", query_data)
+                print(f"✅ User query logged immediately: {result}")
+            except Exception as e:
+                print(f"❌ Failed to log user query: {e}")
+                import traceback
+                traceback.print_exc()
             
             # Verify log was written
             logs = config.get_logs("queries", limit=5)
@@ -454,8 +459,13 @@ def main():
                     print(f"🔍 DEBUG: Attempting to log query for {query_data['user_email']}")
                     print(f"🔍 DEBUG: Question: {query_data['question'][:50]}...")
                     
-                    config.log_activity("queries", query_data)
-                    print(f"✅ Query logged successfully for {st.session_state.get('user_email', 'unknown')}")
+                    try:
+                        result = config.log_activity("queries", query_data)
+                        print(f"✅ Query logged successfully for {st.session_state.get('user_email', 'unknown')}: {result}")
+                    except Exception as e:
+                        print(f"❌ Failed to log query: {e}")
+                        import traceback
+                        traceback.print_exc()
                     
                     # Verify log was written
                     logs = config.get_logs("queries", limit=5)
@@ -539,8 +549,13 @@ def main():
                         }
                         
                         print(f"🔍 DEBUG: Attempting to log no chunks query for {no_chunks_query_data['user_email']}")
-                        config.log_activity("queries", no_chunks_query_data)
-                        print(f"✅ No chunks query logged successfully for {st.session_state.get('user_email', 'unknown')}")
+                        try:
+                            result = config.log_activity("queries", no_chunks_query_data)
+                            print(f"✅ No chunks query logged successfully for {st.session_state.get('user_email', 'unknown')}: {result}")
+                        except Exception as e:
+                            print(f"❌ Failed to log no chunks query: {e}")
+                            import traceback
+                            traceback.print_exc()
                         
                     except Exception as e:
                         print(f"❌ Error logging no chunks query: {e}")

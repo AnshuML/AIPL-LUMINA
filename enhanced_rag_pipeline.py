@@ -19,6 +19,10 @@ from simple_config import config
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Availability flags for optional dependencies
+BM25_AVAILABLE = True
+CROSS_ENCODER_AVAILABLE = True
+
 class EnhancedRAGPipeline:
     """Enhanced RAG Pipeline with robust error handling"""
     

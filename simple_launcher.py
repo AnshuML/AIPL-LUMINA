@@ -71,7 +71,7 @@ def run_chat():
     """Run the chat application with login"""
     print("🚀 Starting AIPL Lumina HR Chatbot with Login...")
     env = os.environ.copy()
-    subprocess.run([sys.executable, "-m", "streamlit", "run", "main_app.py", "--server.port", "8501"], env=env)
+    subprocess.run([sys.executable, "-m", "streamlit", "run", "simple_app.py", "--server.port", "8501"], env=env)
 
 def run_admin():
     """Run the admin panel"""
@@ -92,7 +92,7 @@ def run_both():
     
     # Start chat app in foreground
     try:
-        subprocess.run([sys.executable, "-m", "streamlit", "run", "main_app.py", "--server.port", "8501"], env=env)
+        subprocess.run([sys.executable, "-m", "streamlit", "run", "simple_app.py", "--server.port", "8501"], env=env)
     except KeyboardInterrupt:
         print("\n🛑 Shutting down...")
         admin_process.terminate()

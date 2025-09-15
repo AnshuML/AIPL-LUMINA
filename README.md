@@ -134,6 +134,7 @@ The application is designed to work both locally and on cloud platforms like Str
 ## 📞 Support
 
 For technical support or questions, contact the development team.
+#python simple_launcher.py both
 
 ---
 

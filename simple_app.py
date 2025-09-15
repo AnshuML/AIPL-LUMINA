@@ -5,7 +5,7 @@ Simplified  Chatbot without database dependency
 import os
 import streamlit as st
 import requests
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 import json
 from typing import Dict, Any
 import time
@@ -261,13 +261,15 @@ def main():
     
     # Show welcome screen only if no messages exist
     if not st.session_state.messages:
-        # Dynamic greeting based on time - simplified and reliable
-        # Get current time
-        now = datetime.now()
+        # Dynamic greeting based on IST (Indian Standard Time)
+        # Get current time in IST
+        # IST is UTC+5:30
+        ist = timezone(timedelta(hours=5, minutes=30))
+        now = datetime.now(ist)
         current_hour = now.hour
         current_time = now.strftime("%H:%M")
         
-        # Simple, reliable greeting logic
+        # Simple, reliable greeting logic based on IST
         if 5 <= current_hour < 12:
             greeting = "Good morning!"
         elif 12 <= current_hour < 17:
@@ -278,7 +280,7 @@ def main():
             greeting = "Good night!"
         
         # Debug: Print current time and greeting
-        print(f"🕐 Current time: {current_time} (Hour: {current_hour})")
+        print(f"🕐 IST Current time: {current_time} (Hour: {current_hour})")
         print(f"👋 Generated greeting: {greeting}")
         
         # Welcome Screen - Professional Horizontal Layout (Same width as other elements)
